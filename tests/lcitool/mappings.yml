@@ -1,0 +1,56 @@
+mappings:
+  # Too old on Ubuntu 22.04; we install it from cargo instead
+  bindgen:
+    Ubuntu2204:
+
+  python3:
+    CentOSStream9: python3.11
+
+  python3-devel:
+    CentOSStream9: python3.11-devel
+
+  python3-pip:
+    CentOSStream9: python3.11-pip
+
+  python3-setuptools:
+    CentOSStream9: python3.11-setuptools
+
+  python3-sphinx:
+    CentOSStream9:
+
+  python3-sphinx-rtd-theme:
+    CentOSStream9:
+
+  python3-venv:
+    CentOSStream9: python3.11
+
+  python3-wheel:
+    CentOSStream9: python3.11-wheel
+
+  meson:
+    # Use Meson from PyPI wherever Rust is enabled
+    Debian:
+    Fedora:
+    Ubuntu:
+
+  python3-tomli:
+    # test using tomllib
+    apk:
+    Fedora:
+    Debian12:
+
+  rust:
+    Debian12: rustc-web
+    Ubuntu2204: rustc-1.83
+    Ubuntu2404: rustc-1.83
+
+pypi_mappings:
+  # Request more recent version
+  meson:
+    default: meson==1.12.0
+
+  # Drop packages that need devel headers
+  python3-tomli:
+    apk:
+    Fedora:
+    Debian12:

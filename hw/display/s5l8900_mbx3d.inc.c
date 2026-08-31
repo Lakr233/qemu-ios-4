@@ -44,12 +44,14 @@ static uint32_t mbx_source_over_clamped(uint32_t dst, uint32_t src) {
     return out;
 }
 
-/* QuartzCore's software rasterizer modulates a sampled channel as
- * `vertex * (texture + 1) >> 8`. The r180 software frame and r382 MBX frame
+/*
+ * QuartzCore's software rasterizer modulates a sampled channel as
+ * `vertex * (texture + 1) >> 8`. Software-renderer and MBX captures
  * independently pin that equation for these status sprites: an unmodulated
  * source channel 255 becomes 191 under the captured 0xbf vertex alpha, and
  * 183 becomes 137. Applying one alpha to every premultiplied BGRA8 channel
- * preserves the source-over invariant and the identity endpoint at 255. */
+ * preserves the source-over invariant and the identity endpoint at 255.
+ */
 static uint32_t mbx_modulate_vertex_alpha(uint32_t src, uint32_t alpha) {
     uint32_t out = 0u;
     for (unsigned shift = 0; shift < 32u; shift += 8u) {
@@ -137,11 +139,13 @@ struct mbx_3d_background_form {
     uint32_t boundary[8];
 };
 
-/* The first entry is r369's full 320x96 overlay. r379 captured the next redraw
- * as two literal dirty rectangles over the same quad/source: source rows 0..76
- * across the full width, then rows 77..88 inset by eight pixels. Keeping all
- * three forms exact makes those clipped redraws possible without accepting an
- * arbitrary tile stream or inferring a generic PowerVR rasterizer. */
+/*
+ * The first entry is the captured full 320x96 overlay. A subsequent redraw
+ * uses two literal dirty rectangles over the same quad/source: source rows
+ * 0..76 across the full width, then rows 77..88 inset by eight pixels. Keeping
+ * all three forms exact makes those clipped redraws possible without accepting
+ * an arbitrary tile stream or inferring a generic PowerVR rasterizer.
+ */
 static const struct mbx_3d_background_form mbx_3d_background_forms[] = {
     {
         .xclip = 0x01400000u, .yclip = 0x00800010u,
@@ -427,20 +431,22 @@ struct mbx_3d_status_form {
     uint32_t quad[44];
 };
 
-/* These are literal transcriptions of the live object streams. Words 2 and 5
+/*
+ * These are literal transcriptions of the live object streams. Words 2 and 5
  * are address fields and are validated separately against each form's control
  * bits and FBSTART; every other word must match exactly. A zero target accepts
  * either surface used by the earlier status forms.
  *
- * The slider label is the one variable-alpha exception: r385/r387/r389
- * measured the same word at all four vertices while its high byte stepped b4,
+ * The slider label is the one variable-alpha exception: successive frames
+ * carried the same word at all four vertices while its high byte stepped b4,
  * 8a, 61, 37 and its low 24 bits stayed zero. Only those four words may vary,
  * must remain identical, and are consumed as the per-vertex alpha established
- * by the software-renderer pixel oracle. r402-r406's tutorial layers retain
+ * by the software-renderer pixel oracle. The captured tutorial layers retain
  * their literal b7/05 alpha words; one capture is not treated as proof of an
- * arbitrary opacity range. Five former 0x612 forms were removed after r414
- * proved that they followed the stale +0x1f0 texture instead of the object
- * selected by the list pointer. */
+ * arbitrary opacity range. Five former 0x612 forms were removed after the
+ * producer trace proved that they followed the stale +0x1f0 texture instead
+ * of the object selected by the list pointer.
+ */
 static const struct mbx_3d_status_form mbx_3d_status_forms[] = {
     {
         .xclip = 0x00a80098u, .yclip = 0x00200000u,
@@ -1033,7 +1039,8 @@ static bool mbx_execute_status_sprite(s5l_mbx_t *m,
     return ok;
 }
 
-/* r409-r412 initially supplied four literal app-icon/label forms. Reading the
+/*
+ * Initial captures supplied four literal app-icon/label forms. Reading the
  * shipped _mbx3DCtxQuadCopyPerspective producer explains the shared packet
  * instead: it is a BGRA8 textured sprite whose independently encoded
  * destination, UV, texture-power, pitch, clip and tile bounds must agree.
@@ -1043,24 +1050,25 @@ static bool mbx_execute_status_sprite(s5l_mbx_t *m,
  * word: pitch_bytes/16 bits 2..7 remain in source-control bits 18..23, while
  * bit 1 is relocated to texture-header bit 0. All measured linear textures
  * use an eight-pixel padded pitch, and that reconstruction yields every
- * captured 0x40..0x500 stride exactly. r415 adds the producer's second vertex
- * order: control 0x0e uses full width/power and height/power UV extents, while
- * control 0x8e uses the previously recovered half-texel extents. QuartzCore's
- * transform_filter_bits path proves that the latter is its filtered form, and
- * the co-shipped software sampler supplies the clamped 8-bit bilinear kernel.
- * r420 then contributes one exact uniformly minified 320x460 form and a third
- * measured state pair. Both vertex orders redundantly encode the same
- * destination and are checked in full. r434 and r438 add the filtered affine
- * subset: the direct sampler remains rigid 1:1, while the modulated sampler may
- * apply a positive uniform similarity transform. The captured samplers carry
- * one uniform alpha byte, which uses the already recovered channel-modulation
- * equation. The background object, blend object and FBSTART must all resolve to
- * the same mapped target, but its GPU address is not a rendering semantic and
- * is therefore not whitelisted. This is still not a perspective or arbitrary
- * affine rasterizer: shear, nonuniform affine scale, four-point warps and
- * coloured vertices remain rejected. r416's partly off-screen label is
- * filtered only when its normalized coordinates, integer boundary, clip and
- * tiles all independently agree. */
+ * captured 0x40..0x500 stride exactly. A later capture adds the producer's
+ * second vertex order: control 0x0e uses full width/power and height/power UV
+ * extents, while control 0x8e uses the previously recovered half-texel extents.
+ * QuartzCore's transform_filter_bits path proves that the latter is its
+ * filtered form, and the co-shipped software sampler supplies the clamped
+ * 8-bit bilinear kernel. Another capture contributes one exact uniformly
+ * minified 320x460 form and a third measured state pair. Both vertex orders
+ * redundantly encode the same destination and are checked in full. Captured
+ * wiggle-mode frames add the filtered affine subset: the direct sampler remains
+ * rigid 1:1, while the modulated sampler may apply a positive uniform
+ * similarity transform. The captured samplers carry one uniform alpha byte,
+ * which uses the already recovered channel-modulation equation. The background
+ * object, blend object and FBSTART must all resolve to the same mapped target,
+ * but its GPU address is not a rendering semantic and is therefore not
+ * whitelisted. This is still not a perspective or arbitrary affine rasterizer:
+ * shear, nonuniform affine scale, four-point warps and coloured vertices remain
+ * rejected. The partly off-screen label is filtered only when its normalized
+ * coordinates, integer boundary, clip and tiles all independently agree.
+ */
 static bool mbx_3d_word_to_finite_float(uint32_t word, float *value) {
     if ((word & 0x7f800000u) == 0x7f800000u ||
         sizeof *value != sizeof word)
@@ -1111,8 +1119,9 @@ static bool mbx_affine_pixel(const struct mbx_affine_transform *transform,
     return true;
 }
 
-/* r414 exposed why the object-list word is not merely another packet
- * discriminator.  Its low twenty bits are a word offset from OBJBASE:
+/*
+ * The producer trace exposed why the object-list word is not merely another
+ * packet discriminator.  Its low twenty bits are a word offset from OBJBASE:
  * 0x61a0007c references the textured object at +0x1f0, while 0x612000a8
  * references a different object at +0x2a0.  The latter is the five-record
  * form emitted by the shipped _mbx3DCtxQuadColor producer.  The apparently
@@ -1125,7 +1134,8 @@ static bool mbx_affine_pixel(const struct mbx_affine_transform *transform,
  * record before every normalized vertex pair.  Those four words must be one
  * uniform premultiplied A8R8G8B8 colour.  The four trailing parameter records
  * carry fixed all-one words and exact controls; they are not the quad colour.
- * Non-axis-aligned quads remain rejected. */
+ * Non-axis-aligned quads remain rejected.
+ */
 static bool mbx_execute_solid_quad(s5l_mbx_t *m,
                                    const arm_bus_t *bus,
                                    const char **why,
@@ -1620,12 +1630,14 @@ static bool mbx_execute_textured_sprite(s5l_mbx_t *m,
             return false;
         }
     } else {
-        /* r434's first wiggle-mode render is a rigid affine instance of the
-         * direct filtered producer. r438 contributes the modulated producer's
-         * uniformly scaled affine form. Both have zero perspective and four
-         * corners that close to a parallelogram. Keep unfiltered, alternate-
-         * sampler, perspective, shear, and arbitrary four-point warps
-         * rejected. */
+        /*
+         * The first captured wiggle-mode render is a rigid affine instance of
+         * the direct filtered producer. A later capture contributes the
+         * modulated producer's uniformly scaled affine form. Both have zero
+         * perspective and four corners that close to a parallelogram. Keep
+         * unfiltered, alternate-sampler, perspective, shear, and arbitrary
+         * four-point warps rejected.
+         */
         float closure_x = destination_x[p00] + destination_x[p11] -
                           destination_x[p10] - destination_x[p01];
         float closure_y = destination_y[p00] + destination_y[p11] -
@@ -1706,10 +1718,13 @@ static bool mbx_execute_textured_sprite(s5l_mbx_t *m,
         return false;
     }
 
-    /* Source dimensions are encoded independently of destination geometry.
+    /*
+     * Source dimensions are encoded independently of destination geometry.
      * Invert the producer's normalized UV extent first, then decode the
      * power-of-two allocation and split pitch independently.  This is what
-     * distinguishes r420's 320x460 texture from its 28.8x41.4 destination. */
+     * distinguishes the observed 320x460 texture from its 28.8x41.4
+     * destination.
+     */
     uint32_t header_width_field = (quad[1] >> 24) & 7u;
     uint32_t header_height_field = (quad[1] >> 20) & 7u;
     uint32_t header_texture_width = 8u << header_width_field;
@@ -2009,9 +2024,12 @@ static bool mbx_execute_textured_sprite(s5l_mbx_t *m,
         return false;
     }
 
-    /* An inward edge is the integer context scissor measured in r418. Natural
-     * floor/ceil edges retain the original float extrema so the producer's
-     * asymmetric guard rounding remains independently checkable. */
+    /*
+     * An inward edge is the integer context scissor measured in the partial
+     * clip capture. Natural floor/ceil edges retain the original float extrema
+     * so the producer's asymmetric guard rounding remains independently
+     * checkable.
+     */
     float producer_x0 = boundary_left > natural_left
         ? (float)boundary_left : bounded_x0;
     float producer_y0 = boundary_top > natural_top
@@ -2070,7 +2088,7 @@ static bool mbx_execute_textured_sprite(s5l_mbx_t *m,
     if (!filtered_sampling && !zero_coverage) {
         /* The remaining 0x0e producer order is unfiltered.  Its integer-sized
          * unity transform must still select one strict contiguous source crop.
-         * The crop does not have to begin at texture origin: r430 copies
+         * The crop does not have to begin at texture origin: one capture copies
          * source rows 20..479 to destination rows 20..479 from a 320x480
          * surface inside a 512x512 allocation.  Require integer UV edges so
          * this remains a direct texel copy rather than inventing nearest-

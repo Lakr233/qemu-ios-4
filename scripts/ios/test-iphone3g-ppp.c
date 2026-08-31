@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 #include "iphone3g-ppp.h"
 
 #include <assert.h>

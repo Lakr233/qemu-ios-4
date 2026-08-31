@@ -1,34 +1,18 @@
 /*
- * S5LBox — a PPP peer, for the far end of the guest's own /usr/sbin/pppd.
+ * Platform-independent async PPP peer for the iPhone 3G UART4 link.
  *
- * Milestone N2 of docs/networking.md §10: HDLC-async framing (RFC 1662), LCP
- * (RFC 1661) and IPCP (RFC 1332), enough that the guest's pppd gets an answer
- * and configures an interface at 10.0.2.15 with the peer at 10.0.2.2.
+ * The core owns no I/O, sockets, clock, allocation, or platform state.  Bytes
+ * enter through ppp_input(), framed output leaves through ppp_output(), and
+ * the caller supplies monotonic time.  IPv4 routing remains behind the
+ * ppp_set_ip_sink() and ppp_send_ip() boundary.
  *
- * WHAT THIS MODULE IS NOT. It has no I/O, no sockets, no clock, no allocation
- * and no platform header — the whole of it is <stdint.h>, <stdbool.h>,
- * <stddef.h> and <string.h>. Bytes go in through ppp_input(), bytes come out
- * through ppp_output(), and time arrives as a number the caller chooses. That
- * is not minimalism for its own sake: it is what lets the 47 real bytes the
- * real guest really sent (work/run80-ppp-tty/uart4-ppp.bin) be replayed against
- * it in a unit test in microseconds, on a host with no phone attached.
+ * Derived from S5LBox commit 6f203ba550b49afadee008c7eb55373a838eed33.
+ * Copyright (c) 2026 j0shua-SYSON.
  *
- * IT STILL DOES NOT ROUTE ANY IP ITSELF. What it now has is a one-function
- * boundary: ppp_set_ip_sink() names something that wants received IPv4
- * datagrams, and ppp_send_ip() frames one going the other way. With no sink
- * installed the behaviour is exactly the N2 behaviour — counted and dropped —
- * so this file still has no idea what a NAT is, and core/src/net/net.c still
- * has no idea what HDLC is. N4 is the two of them joined by a caller.
- *
- * THREADING. None. It is a plain struct with no internal pointers, so a caller
- * that needs it on another thread copies or locks it; docs/networking.md §8.3
- * requires the host->guest handoff to happen on the CPU thread between run
- * slices, and this module is written so that is the only place it ever runs.
- *
- * Copyright (c) 2026 j0shua-SYSON. MIT licensed.
+ * SPDX-License-Identifier: MIT
  */
-#ifndef S5LBOX_PPP_H
-#define S5LBOX_PPP_H
+#ifndef IPHONE3G_PPP_H
+#define IPHONE3G_PPP_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -155,7 +139,7 @@ typedef enum {
 } ppp_phase_t;
 
 typedef struct {
-    /* Addresses, host byte order. docs/networking.md §8.2's own numbers. */
+    /* Addresses in Host byte order. */
     uint32_t local_ip;       /* ours, the gateway the guest routes through   */
     uint32_t remote_ip;      /* what IPCP assigns the guest                  */
     uint32_t dns1, dns2;     /* offered only if the guest asks (RFC 1877)    */
@@ -181,11 +165,9 @@ typedef struct {
     uint64_t echo_replies;      /* Echo-Requests we answered                 */
     /*
      * IPCP DNS options RECEIVED from the guest (RFC 1877). pppd sends these
-     * only with `usepeerdns`, so these two counters separate the two worlds
-     * r202 could not tell apart: the guest never asked (the option is not
-     * reaching pppd), versus it asked and was answered and the failure lies
-     * somewhere else entirely. Those need opposite fixes, and r198/r200/r202
-     * were each spent guessing between them.
+     * only with `usepeerdns`, so these counters distinguish a guest that never
+     * requested DNS from one whose request was answered but failed elsewhere.
+     * Those outcomes require different fixes and must remain observable.
      *
      * Counted where the option is classified, so they count what arrived --
      * not what we intended to offer.
@@ -228,7 +210,7 @@ typedef struct {
     ppp_config_t cfg;
     ppp_stats_t  stats;
 
-    /* Installed by ppp_set_ip_sink(). NULL is the N2 behaviour. */
+    /* Installed by ppp_set_ip_sink(). NULL counts and drops IPv4 input. */
     ppp_ip_sink_fn ip_sink;
     void          *ip_ctx;
 
@@ -253,8 +235,8 @@ typedef struct {
 
     /*
      * The map that governs OUR transmit escaping. It is 0xffffffff and stays
-     * there; see the escaping note in core/src/net/ppp.c for why escaping more
-     * than strictly required is the only choice with no failure mode.
+     * there; escaping more than required is safe, while escaping less can lose
+     * control bytes on a serial transport.
      */
     uint32_t     tx_accm;
 
@@ -274,9 +256,7 @@ typedef struct {
 
 /*
  * Default configuration: guest 10.0.2.15, gateway 10.0.2.2, DNS 10.0.2.3 —
- * docs/networking.md §8.2's own addresses, and the reason they are a function
- * rather than three defines is that a caller must be able to see the whole set
- * it is accepting.
+ * returned as one configuration so the caller sees the complete address set.
  */
 void ppp_config_default(ppp_config_t *cfg);
 
@@ -334,8 +314,7 @@ void ppp_set_ip_sink(ppp_peer_t *p, ppp_ip_sink_fn fn, void *ctx);
  * Frame one IPv4 datagram toward the guest. Returns false — and counts a
  * tx_overflow — if IPCP is not Opened, if the datagram is larger than the
  * peer's MRU, or if the transmit ring could not hold the whole frame. A
- * partially queued frame is never produced; see the note on tx_frame() in
- * core/src/net/ppp.c for why that matters more than it looks.
+ * partially queued frame is never produced.
  */
 bool ppp_send_ip(ppp_peer_t *p, const uint8_t *pkt, size_t n);
 
@@ -371,4 +350,4 @@ uint16_t ppp_fcs16(uint16_t fcs, const uint8_t *data, size_t n);
 size_t ppp_frame(uint16_t proto, const uint8_t *info, size_t info_len,
                  uint32_t accm, uint8_t *out, size_t cap);
 
-#endif /* S5LBOX_PPP_H */
+#endif /* IPHONE3G_PPP_H */

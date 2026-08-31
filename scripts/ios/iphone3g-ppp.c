@@ -1,24 +1,12 @@
 /*
- * S5LBox — the host's PPP peer. Milestone N2 of docs/networking.md §10.
+ * Async PPP peer for the iPhone 3G UART4 development link.
  *
- * The guest runs Apple's own /usr/sbin/pppd against /dev/tty.debug, which is
- * uart4 in core/src/soc/uart.c. This file is the other end of that line: it
- * deframes what pppd sends, answers LCP and IPCP, and hands the guest
- * 10.0.2.15. Everything it implements is from a published specification —
- * RFC 1662 (HDLC-async framing), RFC 1661 (LCP and the option automaton),
- * RFC 1332 (IPCP) and RFC 1877 (the DNS options) — which is a large part of
- * why docs/networking.md §12 picked this route at all.
+ * The Guest runs its stock /usr/sbin/pppd.  This peer implements HDLC-async
+ * framing (RFC 1662), LCP (RFC 1661), IPCP (RFC 1332), and the DNS options
+ * from RFC 1877.  It assigns the Guest 10.0.2.15 and exposes complete IPv4
+ * datagrams to the optional libslirp bridge.
  *
- * WHAT THE EVIDENCE ACTUALLY SAYS. run80 recorded 47 bytes of a real guest's
- * first Configure-Request in work/run80-ppp-tty/uart4-ppp.bin. Decoded, they
- * are one LCP Configure-Request, identifier 1, length 20, carrying FOUR
- * options: ASYNCMAP 0x00000000, Magic-Number 0x7961f51c, Protocol-Field-
- * Compression and Address-and-Control-Field-Compression. There is NO
- * Maximum-Receive-Unit option — pppd omits it when it wants the default 1500 —
- * so anything this file does with MRU is written from RFC 1661 §6.1 and is
- * UNTESTED AGAINST THIS GUEST. That distinction is kept everywhere below.
- *
- * TWO DELIBERATE ASYMMETRIES, both in the direction of "cannot go wrong".
+ * Two deliberate asymmetries keep the transmit contract simple.
  *
  * 1. WE ALWAYS ESCAPE AS IF THE ASYNC-CONTROL-CHARACTER-MAP WERE 0xFFFFFFFF.
  *    RFC 1662 §7.1 makes 0xFFFFFFFF the default until the peer's map is
@@ -37,7 +25,10 @@
  *    That removes an entire class of "which form did we agree to" bug from the
  *    transmit path, at a cost of three octets per frame.
  *
- * Copyright (c) 2026 j0shua-SYSON. MIT licensed.
+ * Derived from S5LBox commit 6f203ba550b49afadee008c7eb55373a838eed33.
+ * Copyright (c) 2026 j0shua-SYSON.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #include "iphone3g-ppp.h"
 #include <string.h>
@@ -311,8 +302,7 @@ static opt_verdict_t lcp_review(ppp_peer_t *p, const uint8_t *o, uint8_t olen,
     *nak_len = 0;
     switch (type) {
         case LCP_OPT_MRU:
-            /* RFC 1661 §6.1. UNTESTED against this guest: run80's pppd did not
-             * send this option at all. */
+            /* RFC 1661 §6.1. */
             if (olen != 4u) return OPT_REJ;
             if ((uint32_t)(((uint32_t)o[2] << 8) | o[3]) > PPP_MRU_DEFAULT) {
                 nak[0] = LCP_OPT_MRU; nak[1] = 4u;
@@ -381,10 +371,10 @@ static opt_verdict_t ipcp_review(ppp_peer_t *p, const uint8_t *o, uint8_t olen,
     *nak_len = 0;
     switch (type) {
         case IPCP_OPT_ADDRESS: {
-            /* RFC 1332 §3.3. This is the whole point of N2: whatever the guest
-             * proposes — and pppd with no `ipparam` proposes 0.0.0.0 — we Nak
-             * with the address docs/networking.md §8.2 assigns it. Only when it
-             * comes back asking for exactly that do we Ack. */
+            /*
+             * RFC 1332 §3.3.  Nak any other proposal with the configured
+             * Guest address, then Ack that exact address.
+             */
             if (olen != 6u) return OPT_REJ;
             uint32_t want = get_be32(o + 2);
             if (want == p->cfg.remote_ip) return OPT_ACK;
@@ -407,11 +397,7 @@ static opt_verdict_t ipcp_review(ppp_peer_t *p, const uint8_t *o, uint8_t olen,
 
         case IPCP_OPT_DNS1:
         case IPCP_OPT_DNS2: {
-            /* RFC 1877 §1.1/1.2, sent by pppd only with `usepeerdns`. Answer
-             * with the address docs/networking.md §8.2 names, even though
-             * nothing answers DNS there yet: that is N5, and handing out an
-             * address for a server that does not exist is better than Rejecting
-             * an option we intend to support. */
+            /* RFC 1877 §1.1/1.2, sent by pppd with `usepeerdns`. */
             if (olen != 6u) return OPT_REJ;
             p->stats.ipcp_dns_requests++;
             uint32_t want = get_be32(o + 2);
@@ -844,8 +830,7 @@ static void frame_input(ppp_peer_t *p, const uint8_t *f, size_t n) {
             p->stats.ip_bytes_in += n;
             /*
              * RFC 1332 §2: Network-Layer packets belong to the NCP's Opened
-             * state and nowhere else. Before that — and with no sink installed
-             * at all, which is the N2 configuration this file shipped with —
+             * state and nowhere else. Before that, or with no sink installed,
              * the datagram is counted separately and dropped, so a report can
              * always tell "nobody was listening" from "we routed it".
              */
@@ -972,9 +957,7 @@ void ppp_tick(ppp_peer_t *p, uint32_t now_ms) {
 
 void ppp_config_default(ppp_config_t *cfg) {
     if (!cfg) return;
-    /* docs/networking.md §8.2: guest 10.0.2.15, gateway 10.0.2.2, DNS 10.0.2.3.
-     * §9.1 restates the guest's address for the Route B/C bootstrap, which is
-     * why it is one number in one place rather than three. */
+    /* Guest 10.0.2.15, gateway 10.0.2.2, DNS 10.0.2.3. */
     cfg->local_ip  = 0x0a000202u;   /* 10.0.2.2  — us                       */
     cfg->remote_ip = 0x0a00020fu;   /* 10.0.2.15 — the guest                */
     cfg->dns1      = 0x0a000203u;   /* 10.0.2.3                             */
@@ -983,7 +966,7 @@ void ppp_config_default(ppp_config_t *cfg) {
      * A fixed magic number, not a random one. This peer has no entropy source
      * (it has no platform at all), and a magic number's only job is loopback
      * detection: RFC 1661 §6.4's rule is that the two ends must DIFFER, and
-     * pppd picks its own randomly — run80's was 0x7961f51c. A constant here is
+     * pppd picks its own randomly. A constant here is
      * detectable-as-a-loop for exactly one guest magic number out of 2^32, and
      * the collision path is implemented and tested anyway.
      */

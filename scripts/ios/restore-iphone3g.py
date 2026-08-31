@@ -31,7 +31,7 @@ LEGACY_NAND_READY = b"[FTL:MSG] FTL_Open"
 PROGRESS_REPEAT_INTERVAL = 10
 STATUS_LOG_TAIL_BYTES = 4096
 # A cold 8C148 boot can need more than a minute to publish AppleUSBMux under
-# single-threaded TCG on a cloud Mac.  Keep discovery alive across that boot
+# single-threaded TCG on a slow Host.  Keep discovery alive across that boot
 # boundary while retaining bounded retries for a genuinely absent service.
 RESTORED_CONNECT_TIMEOUT = 120
 RESTORED_CONNECT_RETRY_INTERVAL = 0.25

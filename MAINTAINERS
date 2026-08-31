@@ -757,6 +757,21 @@ F: hw/arm/orangepi.c
 F: docs/system/arm/orangepi.rst
 F: tests/functional/arm/test_orangepi.py
 
+Apple iPhone 3G (iPhone1,2 / N82AP)
+M: Lakr <git@qaq.wiki>
+S: Maintained
+F: docs/system/arm/iphone3g.rst
+F: hw/arm/iphone3g.c
+F: hw/*/s5l8900*
+F: include/hw/*/s5l8900*
+F: hw/audio/wm8991.c
+F: include/hw/audio/wm8991.h
+F: hw/misc/pcf50635.c
+F: include/hw/misc/pcf50635.h
+F: hw/sensor/isl29003.c
+F: scripts/ios/
+F: tests/qtest/iphone3g-test.c
+
 ARM PrimeCell and CMSDK devices
 M: Peter Maydell <peter.maydell@linaro.org>
 L: qemu-arm@nongnu.org

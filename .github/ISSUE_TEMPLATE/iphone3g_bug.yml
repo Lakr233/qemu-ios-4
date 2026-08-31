@@ -1,0 +1,67 @@
+name: iPhone 3G bug
+description: Report a reproducible problem with the iPhone 3G machine or tools
+title: "[iphone3g] "
+labels: [iphone3g]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not upload Apple firmware, NAND images, pairing records, UDIDs, serial numbers, or fuse keys.
+  - type: input
+    id: commit
+    attributes:
+      label: Commit
+      description: Output of `git rev-parse HEAD`
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: Host
+      description: Operating system version and CPU architecture
+    validations:
+      required: true
+  - type: dropdown
+    id: firmware
+    attributes:
+      label: Firmware profile
+      options:
+        - iOS 4.2.1 (8C148)
+        - iPhone OS 2.0 (5A347)
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: Exact command and non-secret environment overrides
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted log tail
+      description: Include only the smallest useful UART or focused trace window
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checks
+      options:
+        - label: I removed firmware, storage images, identifiers, Host paths, pairing data, and secrets.
+          required: true
+        - label: I reproduced this on the commit listed above.
+          required: true

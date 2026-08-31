@@ -1,3 +1,83 @@
+=====================
+qemu-ios-4
+=====================
+
+``qemu-ios-4`` is an experimental QEMU fork that models the Apple iPhone 3G
+(``iPhone1,2`` / ``N82AP``) well enough to restore and run iPhone OS 2.0 and
+iOS 4.2.1.  The verified iOS 4 path reaches an interactive SpringBoard with a
+resizable Cocoa display, mouse-driven multitouch, Home and Power buttons,
+persistent NAND/NVRAM, USB device transport, and an optional rootless PPP
+network path.
+
+This is a research and preservation project, not a complete iPhone emulator.
+The baseband, telephony, camera, host audio output, and exact NAND ECC are not
+implemented.  The normal display path uses the software MBX renderer; the
+Metal backend is an explicit experiment.  Full cold boots use ARM TCG and can
+be slow, while a verified ready-state checkpoint provides the practical inner
+development loop.
+
+Getting started
+===============
+
+The complete machine contract, supported firmware hashes, first restore,
+installed boot, checkpoint, clean shutdown, and troubleshooting procedures are
+in the `iPhone 3G machine documentation
+<docs/system/arm/iphone3g.rst>`_.  The end-to-end graphical workflow is
+verified on macOS.  The device model and qtests also build on Linux.
+
+On macOS, install the build and optional bridge dependencies, then run:
+
+.. code-block:: shell
+
+   brew install autoconf automake glib libimobiledevice libimobiledevice-glue \
+       libplist libslirp libtool libusb ninja pixman pkg-config python@3.13
+
+Python 3.11 or newer is supported.  Build and verify the project with:
+
+.. code-block:: shell
+
+   ./scripts/ios/bootstrap-macos.sh
+   ./scripts/ios/fetch-firmware.sh
+   make -C build iphone3g-help
+   make -C build iphone3g-test
+
+The initial system restore is a stateful, multi-terminal procedure; follow the
+machine documentation rather than interrupting it mid-transfer.  Once an
+installed virtual-device identity exists, ``make -C build iphone3g-play``
+starts the normal resizable Cocoa session.  ``iphone3g-checkpoint`` and
+``iphone3g-resume`` provide the faster repeated-development path.
+
+The firmware script downloads the unmodified supported IPSW directly from
+Apple over HTTPS and verifies its exact size and SHA-256.  No Apple firmware,
+boot ROM, NAND image, fuse key, or ready-state checkpoint is stored in this
+repository.  Generated material remains under the ignored ``.artifacts/``
+directory.
+
+Project boundaries
+==================
+
+Apple, iPhone, and iOS are trademarks of Apple Inc.  This project is not
+affiliated with or endorsed by Apple.  Users are responsible for obtaining and
+using firmware and device-derived material lawfully.  Do not attach firmware,
+NAND images, pairing records, or fuse keys to public issues.
+
+Fork-specific bug reports and pull requests are welcome on this repository.
+Read `CONTRIBUTING.md <CONTRIBUTING.md>`_ before submitting changes and use
+the process in `SECURITY.md <SECURITY.md>`_ for vulnerabilities.  General QEMU
+issues that reproduce without the ``iphone3g`` machine still belong upstream.
+
+Third-party code
+================
+
+The UART PPP protocol core and bounded MBX decoders contain code derived from
+`S5LBox <https://github.com/j0shua-SYSON/S5LBox>`_ commit
+``6f203ba550b49afadee008c7eb55373a838eed33`` under the MIT License.  The
+original copyright notices remain with those sources, and the permission text
+is included in ``LICENSES/MIT.txt``.  Other device contracts
+independently corroborated against S5LBox identify that provenance in their
+file headers.  The rest of the emulator follows the per-file licensing
+described by QEMU's root ``LICENSE`` file.
+
 ===========
 QEMU README
 ===========

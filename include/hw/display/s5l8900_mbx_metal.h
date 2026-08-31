@@ -1,4 +1,8 @@
-/* Optional macOS Metal execution backend for measured S5L8900 MBX jobs. */
+/*
+ * Optional macOS Metal execution backend for measured S5L8900 MBX jobs.
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
 #ifndef HW_DISPLAY_S5L8900_MBX_METAL_H
 #define HW_DISPLAY_S5L8900_MBX_METAL_H
 

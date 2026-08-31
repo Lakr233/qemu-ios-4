@@ -1,6 +1,8 @@
 /*
  * Rootless UART PPP to libslirp bridge for the iPhone1,2 development board.
  * The Guest runs its stock pppd; this process is its peer and NAT boundary.
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "iphone3g-ppp.h"
 

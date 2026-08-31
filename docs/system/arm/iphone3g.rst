@@ -223,17 +223,17 @@ fresh disposable workspace under ``.artifacts/runs/iphone3g-quick``, and
 automatically continues the incoming VM after the frozen stream is loaded.
 Never substitute a newer persistent NAND under an older VM state.
 
-The current release checkpoint passed the separate display and input gates: a
-Cocoa restore reproduced the exact complete 320 by 480 lock screen; the
-resumed Guest consumed Zephyr2 records; and its AppleM68Buttons consumer
-re-armed the live Power GPIO interrupt after a Host key event.  A later black
-frame can still be the Guest's own ``LCD_DISABLE``/Auto-Lock policy.  The
+Treat a checkpoint as ready only after separate display and input gates pass:
+a Cocoa restore must reproduce a complete 320 by 480 screen, the resumed Guest
+must consume Zephyr2 records, and its AppleM68Buttons consumer must re-arm the
+Power GPIO interrupt after a Host key event.  A later black frame can still be
+the Guest's own ``LCD_DISABLE``/Auto-Lock policy.  The
 ``iphone3g-monitor``, ``iphone3g-screenshot``, ``iphone3g-wake``,
 ``iphone3g-swipe-unlock``, and ``iphone3g-stop`` targets automatically select
 the active quick-resume sockets when the persistent cold-boot VM is absent.
-On the final clean validation, sending the standard 12-frame swipe immediately
-after resume advanced through the status-bar transition and published the full
-SpringBoard icon grid and Dock.
+The standard 12-frame swipe provides the observable unlock gate: it must
+advance through the status-bar transition and publish the SpringBoard icon grid
+and Dock.
 
 ARM1176 checkpoints require both the Secure and Non-secure AArch32 CP15 banks.
 QEMU's KVM register decoder intentionally selects the Non-secure bank, whereas
@@ -711,9 +711,9 @@ intended.  Run ``iphone3g-boot`` only after iBSS reaches its recovery prompt. Us
 overrides.  ``make -C build iphone3g-monitor`` opens the QEMU monitor, and
 ``make -C build iphone3g-screenshot`` captures its 320 by 480 scanout.
 Start ``iphone3g-usbmuxd`` in a fourth terminal and run
-``iphone3g-restore`` for a fresh official restore.  After a terminal restore
-status of zero, stop QEMU cleanly and preserve the NAND, NOR, GID, and UID
-files as one virtual-device identity.  On later boots, replace
+``iphone3g-restore-system`` for a fresh official restore.  After a terminal
+restore status of zero, stop QEMU cleanly and preserve the NAND, NOR, GID, and
+UID files as one virtual-device identity.  On later boots, replace
 ``iphone3g-boot`` with ``iphone3g-boot-installed`` to select ``disk0s1``.
 An opt-in development boot can apply the Legacy iOS Kit 8C148 hacktivation
 branch after Apple's signed ``lockdownd`` has been accepted and mapped:

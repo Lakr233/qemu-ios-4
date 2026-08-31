@@ -45,6 +45,9 @@ pl330_iomem_write(uint32_t offset, uint32_t value) "addr: 0x%08"PRIx32" data: 0x
 pl330_iomem_write_clr(int i) "event interrupt lowered %d"
 pl330_iomem_read(uint32_t addr, uint32_t data) "addr: 0x%08"PRIx32" data: 0x%08"PRIx32
 
+# pl080.c
+pl080_external_request(unsigned request, unsigned direction, int channel, uint32_t src, uint32_t dest, uint32_t lli, uint32_t ctrl, uint32_t conf, bool completed, bool retry) "request=%u direction=%u channel=%d src=0x%08" PRIx32 " dest=0x%08" PRIx32 " lli=0x%08" PRIx32 " ctrl=0x%08" PRIx32 " conf=0x%08" PRIx32 " completed=%d retry=%d"
+
 # xilinx_axidma.c
 xilinx_axidma_loading_desc_fail(uint32_t res) "error:%u"
 

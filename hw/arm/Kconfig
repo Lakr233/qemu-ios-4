@@ -79,6 +79,40 @@ config INTEGRATOR
     select PL181 # display
     select SMC91C111
 
+config IPHONE3G
+    bool
+    default y
+    depends on TCG && ARM
+    select OR_IRQ
+    select PL080
+    select S5L8900_LCD
+    select S5L8900_MBX
+    select S5L8900_TVOUT
+    select S5L8900_NAND
+    select S5L8900_SDIO
+    select S5L8900_SPI
+    select S5L8900_MERLOT
+    select S5L8900_ZEPHYR2
+    select S5L8900_UART
+    select S5L8900_AES
+    select S5L8900_SHA1
+    select S5L8900_PKE
+    select S5L8900_ADM
+    select S5L8900_CLOCK
+    select S5L8900_CHIPID
+    select S5L8900_GPIO
+    select S5L8900_I2C
+    select S5L8900_I2S
+    select S5L8900_TIMER
+    select S5L8900_USB
+    select S5L8900_VIC
+    select S5L8900_EDGEIC
+    select S5L8900_WATCHDOG
+    select ISL29003
+    select PCF50635
+    select SSI_M25P80
+    select WM8991
+
 config MAX78000FTHR
     bool
     default y

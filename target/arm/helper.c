@@ -153,14 +153,32 @@ static bool raw_accessors_invalid(const ARMCPRegInfo *ri)
     return true;
 }
 
-bool write_cpustate_to_list(ARMCPU *cpu, bool kvm_sync)
+static uint32_t list_to_cpreg_id(uint64_t index, bool vmstate)
+{
+    uint32_t regidx = kvm_to_cpreg_id(index);
+
+    /*
+     * kvm_to_cpreg_id() correctly forces real AArch32 KVM registers into
+     * the non-secure bank.  The migration array uses the same external
+     * encoding, but cpreg_to_kvm_id() deliberately leaves QEMU's private
+     * NS bit in its low word so secure and non-secure entries stay distinct.
+     */
+    if (vmstate && (index & CP_REG_ARCH_MASK) == CP_REG_ARM) {
+        regidx &= ~CP_REG_AA32_NS_MASK;
+        regidx |= index & CP_REG_AA32_NS_MASK;
+    }
+    return regidx;
+}
+
+static bool write_cpustate_to_list_internal(ARMCPU *cpu, bool kvm_sync,
+                                            bool vmstate)
 {
     /* Write the coprocessor state from cpu->env to the (index,value) list. */
     int i;
     bool ok = true;
 
     for (i = 0; i < cpu->cpreg_array_len; i++) {
-        uint32_t regidx = kvm_to_cpreg_id(cpu->cpreg_indexes[i]);
+        uint32_t regidx = list_to_cpreg_id(cpu->cpreg_indexes[i], vmstate);
         const ARMCPRegInfo *ri;
         uint64_t newval;
 
@@ -199,13 +217,23 @@ bool write_cpustate_to_list(ARMCPU *cpu, bool kvm_sync)
     return ok;
 }
 
-bool write_list_to_cpustate(ARMCPU *cpu)
+bool write_cpustate_to_list(ARMCPU *cpu, bool kvm_sync)
+{
+    return write_cpustate_to_list_internal(cpu, kvm_sync, false);
+}
+
+bool write_cpustate_to_vmstate_list(ARMCPU *cpu)
+{
+    return write_cpustate_to_list_internal(cpu, false, true);
+}
+
+static bool write_list_to_cpustate_internal(ARMCPU *cpu, bool vmstate)
 {
     int i;
     bool ok = true;
 
     for (i = 0; i < cpu->cpreg_array_len; i++) {
-        uint32_t regidx = kvm_to_cpreg_id(cpu->cpreg_indexes[i]);
+        uint32_t regidx = list_to_cpreg_id(cpu->cpreg_indexes[i], vmstate);
         uint64_t v = cpu->cpreg_values[i];
         const ARMCPRegInfo *ri;
 
@@ -228,6 +256,16 @@ bool write_list_to_cpustate(ARMCPU *cpu)
         }
     }
     return ok;
+}
+
+bool write_list_to_cpustate(ARMCPU *cpu)
+{
+    return write_list_to_cpustate_internal(cpu, false);
+}
+
+bool write_vmstate_list_to_cpustate(ARMCPU *cpu)
+{
+    return write_list_to_cpustate_internal(cpu, true);
 }
 
 static void add_cpreg_to_list(gpointer key, gpointer value, gpointer opaque)

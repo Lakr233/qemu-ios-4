@@ -825,6 +825,7 @@ version_res = []
 coref = []
 iokit = []
 pvg = not_found
+metal = not_found
 emulator_link_args = []
 midl = not_found
 widl = not_found
@@ -850,6 +851,7 @@ elif host_os == 'darwin'
   coref = dependency('appleframeworks', modules: 'CoreFoundation')
   iokit = dependency('appleframeworks', modules: 'IOKit', required: false)
   host_dsosuf = '.dylib'
+  metal = dependency('appleframeworks', modules: 'Metal', required: false)
   pvg = dependency('appleframeworks', modules: ['ParavirtualizedGraphics', 'Metal'],
                    required: get_option('pvg'))
 elif host_os == 'sunos'

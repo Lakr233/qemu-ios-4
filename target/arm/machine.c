@@ -999,7 +999,7 @@ static int cpu_pre_save(void *opaque)
          */
         kvm_arm_cpu_pre_save(cpu);
     } else {
-        if (!write_cpustate_to_list(cpu, false)) {
+        if (!write_cpustate_to_vmstate_list(cpu)) {
             /* This should never fail. */
             g_assert_not_reached();
         }
@@ -1196,7 +1196,7 @@ static int cpu_post_load(void *opaque, int version_id)
             return -1;
         }
     } else {
-        if (!write_list_to_cpustate(cpu)) {
+        if (!write_vmstate_list_to_cpustate(cpu)) {
             return -1;
         }
     }

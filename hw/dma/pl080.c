@@ -11,11 +11,13 @@
 #include "hw/core/sysbus.h"
 #include "migration/vmstate.h"
 #include "qemu/log.h"
+#include "qemu/main-loop.h"
 #include "qemu/module.h"
 #include "hw/dma/pl080.h"
 #include "hw/core/irq.h"
 #include "hw/core/qdev-properties.h"
 #include "qapi/error.h"
+#include "trace.h"
 
 #define PL080_CONF_E    0x1
 #define PL080_CONF_M1   0x2
@@ -34,6 +36,8 @@
 #define PL080_CCTRL_D   0x02000000
 #define PL080_CCTRL_S   0x01000000
 
+#define PL080_EXTERNAL_LLI_LIMIT 4096
+
 static const VMStateDescription vmstate_pl080_channel = {
     .name = "pl080_channel",
     .version_id = 1,
@@ -48,10 +52,21 @@ static const VMStateDescription vmstate_pl080_channel = {
     }
 };
 
+static int pl080_post_load(void *opaque, int version_id)
+{
+    PL080State *s = opaque;
+
+    if (s->req_single || s->req_burst) {
+        qemu_bh_schedule(s->request_bh);
+    }
+    return 0;
+}
+
 static const VMStateDescription vmstate_pl080 = {
     .name = "pl080",
     .version_id = 1,
     .minimum_version_id = 1,
+    .post_load = pl080_post_load,
     .fields = (const VMStateField[]) {
         VMSTATE_UINT8(tc_int, PL080State),
         VMSTATE_UINT8(tc_mask, PL080State),
@@ -85,6 +100,139 @@ static void pl080_update(PL080State *s)
     qemu_set_irq(s->interr, errlevel);
     qemu_set_irq(s->inttc, tclevel);
     qemu_set_irq(s->irq, errlevel || tclevel);
+}
+
+static bool pl080_load_external_lli(PL080State *s, pl080_channel *ch,
+                                    uint32_t address)
+{
+    uint8_t descriptor[16];
+
+    if (address > UINT32_MAX - sizeof(descriptor) + 1 ||
+        address_space_read(&s->downstream_as, address,
+                           MEMTXATTRS_UNSPECIFIED, descriptor,
+                           sizeof(descriptor)) != MEMTX_OK) {
+        return false;
+    }
+    ch->src = ldl_le_p(descriptor);
+    ch->dest = ldl_le_p(descriptor + 4);
+    ch->lli = ldl_le_p(descriptor + 8);
+    ch->ctrl = ldl_le_p(descriptor + 12);
+    return true;
+}
+
+static bool pl080_advance_external_channel(PL080State *s,
+                                           pl080_channel *ch)
+{
+    for (unsigned i = 0; i < PL080_EXTERNAL_LLI_LIMIT; i++) {
+        uint32_t ctrl = ch->ctrl;
+        uint32_t count = extract32(ctrl, 0, 12);
+        unsigned swidth = 1 << extract32(ctrl, 18, 3);
+        unsigned dwidth = 1 << extract32(ctrl, 21, 3);
+        uint32_t next_lli;
+        uint32_t bytes;
+
+        if (!count || swidth > 4 || dwidth > 4 ||
+            (count * swidth) % dwidth) {
+            return false;
+        }
+        bytes = count * swidth;
+        if (ctrl & PL080_CCTRL_SI) {
+            ch->src += bytes;
+        }
+        if (ctrl & PL080_CCTRL_DI) {
+            ch->dest += bytes;
+        }
+        ch->ctrl &= ~0xfff;
+
+        next_lli = ch->lli & ~3;
+        if (next_lli) {
+            if (!pl080_load_external_lli(s, ch, next_lli)) {
+                return false;
+            }
+        } else {
+            ch->conf &= ~PL080_CCONF_E;
+        }
+        if (ctrl & PL080_CCTRL_I) {
+            return true;
+        }
+        if (!next_lli) {
+            return false;
+        }
+    }
+    return false;
+}
+
+static int pl080_external_request_channel(
+    PL080State *s, unsigned request,
+    PL080ExternalRequestDirection direction)
+{
+    if (request >= PL080_MAX_REQUESTS || !(s->conf & PL080_CONF_E)) {
+        return -1;
+    }
+
+    for (unsigned c = 0; c < s->nchannels; c++) {
+        pl080_channel *ch = &s->chan[c];
+        unsigned flow = extract32(ch->conf, 11, 3);
+        unsigned peripheral;
+
+        if (!(ch->conf & PL080_CCONF_E) ||
+            (ch->conf & PL080_CCONF_H) || !(ch->ctrl & 0xfff)) {
+            continue;
+        }
+        if (direction == PL080_EXTERNAL_MEMORY_TO_PERIPHERAL && flow == 1) {
+            peripheral = extract32(ch->conf, 6, 5);
+        } else if (direction == PL080_EXTERNAL_PERIPHERAL_TO_MEMORY &&
+                   flow == 2) {
+            peripheral = extract32(ch->conf, 1, 5);
+        } else {
+            continue;
+        }
+        if (peripheral != request) {
+            continue;
+        }
+        return c;
+    }
+    return -1;
+}
+
+bool pl080_has_external_request(PL080State *s, unsigned request,
+                                PL080ExternalRequestDirection direction)
+{
+    return pl080_external_request_channel(s, request, direction) >= 0;
+}
+
+bool pl080_complete_external_request(PL080State *s, unsigned request,
+                                     PL080ExternalRequestDirection direction,
+                                     bool *retry)
+{
+    int c = pl080_external_request_channel(s, request, direction);
+    bool completed = false;
+    uint32_t src = 0;
+    uint32_t dest = 0;
+    uint32_t lli = 0;
+    uint32_t ctrl = 0;
+    uint32_t conf = 0;
+
+    *retry = false;
+    if (c >= 0) {
+        src = s->chan[c].src;
+        dest = s->chan[c].dest;
+        lli = s->chan[c].lli;
+        ctrl = s->chan[c].ctrl;
+        conf = s->chan[c].conf;
+    }
+    if (c >= 0 && (s->tc_int & (1 << c))) {
+        *retry = true;
+    } else if (c >= 0 && pl080_advance_external_channel(s, &s->chan[c])) {
+        s->tc_int |= 1 << c;
+        completed = true;
+        *retry = pl080_external_request_channel(s, request, direction) >= 0;
+    }
+
+    trace_pl080_external_request(request, direction, c, src, dest, lli, ctrl,
+                                 conf, completed, *retry);
+    pl080_update(s);
+    return completed;
 }
 
 static void pl080_run(PL080State *s)
@@ -237,6 +385,31 @@ again:
     pl080_update(s);
 }
 
+static void pl080_run_bh(void *opaque)
+{
+    pl080_run(opaque);
+}
+
+static void pl080_single_request(void *opaque, int line, int level)
+{
+    PL080State *s = opaque;
+
+    s->req_single = deposit32(s->req_single, line, 1, level != 0);
+    if (level) {
+        qemu_bh_schedule(s->request_bh);
+    }
+}
+
+static void pl080_burst_request(void *opaque, int line, int level)
+{
+    PL080State *s = opaque;
+
+    s->req_burst = deposit32(s->req_burst, line, 1, level != 0);
+    if (level) {
+        qemu_bh_schedule(s->request_bh);
+    }
+}
+
 static uint64_t pl080_read(void *opaque, hwaddr offset,
                            unsigned size)
 {
@@ -380,6 +553,7 @@ static void pl080_reset(DeviceState *dev)
     PL080State *s = PL080(dev);
     int i;
 
+    qemu_bh_cancel(s->request_bh);
     s->tc_int = 0;
     s->tc_mask = 0;
     s->err_int = 0;
@@ -409,6 +583,10 @@ static void pl080_init(Object *obj)
     sysbus_init_irq(sbd, &s->irq);
     sysbus_init_irq(sbd, &s->interr);
     sysbus_init_irq(sbd, &s->inttc);
+    qdev_init_gpio_in_named(DEVICE(obj), pl080_single_request,
+                            "single-request", PL080_MAX_REQUESTS);
+    qdev_init_gpio_in_named(DEVICE(obj), pl080_burst_request,
+                            "burst-request", PL080_MAX_REQUESTS);
     s->nchannels = 8;
 }
 
@@ -422,6 +600,15 @@ static void pl080_realize(DeviceState *dev, Error **errp)
     }
 
     address_space_init(&s->downstream_as, s->downstream, "pl080-downstream");
+    s->request_bh = qemu_bh_new(pl080_run_bh, s);
+}
+
+static void pl080_unrealize(DeviceState *dev)
+{
+    PL080State *s = PL080(dev);
+
+    qemu_bh_delete(s->request_bh);
+    address_space_destroy(&s->downstream_as);
 }
 
 static void pl081_init(Object *obj)
@@ -442,6 +629,7 @@ static void pl080_class_init(ObjectClass *oc, const void *data)
 
     dc->vmsd = &vmstate_pl080;
     dc->realize = pl080_realize;
+    dc->unrealize = pl080_unrealize;
     device_class_set_props(dc, pl080_properties);
     device_class_set_legacy_reset(dc, pl080_reset);
 }

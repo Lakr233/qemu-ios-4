@@ -22,6 +22,8 @@
  * + sysbus IRQ 1: DMACINTERR error interrupt request
  * + sysbus IRQ 2: DMACINTTC count interrupt request
  * + sysbus MMIO region 0: MemoryRegion for the device's registers
+ * + GPIO inputs "single-request" 0..31: peripheral single requests
+ * + GPIO inputs "burst-request" 0..31: peripheral burst requests
  * + QOM property "downstream": MemoryRegion defining where DMA
  *   bus master transactions are made
  */
@@ -33,6 +35,12 @@
 #include "qom/object.h"
 
 #define PL080_MAX_CHANNELS 8
+#define PL080_MAX_REQUESTS 32
+
+typedef enum PL080ExternalRequestDirection {
+    PL080_EXTERNAL_MEMORY_TO_PERIPHERAL,
+    PL080_EXTERNAL_PERIPHERAL_TO_MEMORY,
+} PL080ExternalRequestDirection;
 
 typedef struct {
     uint32_t src;
@@ -62,6 +70,7 @@ struct PL080State {
     int nchannels;
     /* Flag to avoid recursive DMA invocations.  */
     int running;
+    QEMUBH *request_bh;
     qemu_irq irq;
     qemu_irq interr;
     qemu_irq inttc;
@@ -69,5 +78,19 @@ struct PL080State {
     MemoryRegion *downstream;
     AddressSpace downstream_as;
 };
+
+/*
+ * Query or complete a peripheral-controlled transfer whose payload is consumed
+ * at a higher-level device transaction boundary.  Completion returns whether a
+ * terminal-count boundary was published.  @retry is set while another linked
+ * segment remains or the current terminal-count interrupt still awaits
+ * acknowledgement.  Ordinary PL080 users should drive the request GPIOs
+ * instead.
+ */
+bool pl080_has_external_request(PL080State *s, unsigned request,
+                                PL080ExternalRequestDirection direction);
+bool pl080_complete_external_request(PL080State *s, unsigned request,
+                                     PL080ExternalRequestDirection direction,
+                                     bool *retry);
 
 #endif

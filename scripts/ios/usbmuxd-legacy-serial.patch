@@ -1,0 +1,19 @@
+diff --git a/src/conf.c b/src/conf.c
+index 2f0968d..1f8fdac 100644
+--- a/src/conf.c
++++ b/src/conf.c
+@@ -427,10 +427,11 @@ int config_set_device_record(const char *udid, char* record_data, uint64_t recor
+ 		return -EINVAL;
+ 
+ 	/* verify udid input */
+-	const char* u = udid;
++	const unsigned char* u = (const unsigned char*)udid;
+ 	while (*u != '\0') {
+-		if (!isalnum(*u) && (*u != '-')) {
+-			usbmuxd_log(LL_ERROR, "ERROR: %s: udid contains invalid character.\n", __func__);
++		/* Old iBoot serials are descriptive strings, not hexadecimal UDIDs. */
++		if (iscntrl(*u) || (*u == '/') || (*u == '\\')) {
++			usbmuxd_log(LL_ERROR, "ERROR: %s: device identifier is not a safe path component.\n", __func__);
+ 			return -EINVAL;
+ 		}
+ 		u++;

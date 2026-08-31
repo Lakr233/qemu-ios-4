@@ -459,6 +459,7 @@ typedef enum {
     STATE_COLLECTING_VAR_LEN_DATA,
     STATE_READING_DATA,
     STATE_READING_SFDP,
+    STATE_IGNORE,
 } CMDState;
 
 typedef enum {
@@ -767,6 +768,7 @@ static void complete_collecting_data(Flash *s)
     case AAI_WP:
         /* AAI programming starts from the even address */
         s->cur_addr &= ~BIT(0);
+        s->pos = 0;
         s->state = STATE_PAGE_PROGRAM;
         break;
     case READ:
@@ -1556,6 +1558,7 @@ static void decode_new_cmd(Flash *s, uint32_t value)
         if (get_man(s) == MAN_SST) {
             if (s->write_enable) {
                 if (s->aai_enable) {
+                    s->pos = 0;
                     s->state = STATE_PAGE_PROGRAM;
                 } else {
                     s->aai_enable = true;
@@ -1626,6 +1629,9 @@ static uint32_t m25p80_transfer8(SSIPeripheral *ss, uint32_t tx)
         flash_write8(s, s->cur_addr, (uint8_t)tx);
         s->cur_addr = (s->cur_addr + 1) & (s->size - 1);
 
+        if (get_man(s) == MAN_SST && s->aai_enable && ++s->pos == 2) {
+            s->state = STATE_IGNORE;
+        }
         if (get_man(s) == MAN_SST && s->aai_enable && s->cur_addr == 0) {
             /*
              * There is no wrap mode during AAI programming once the highest
@@ -1692,6 +1698,9 @@ static uint32_t m25p80_transfer8(SSIPeripheral *ss, uint32_t tx)
         r = s->pi->sfdp_read(s->cur_addr);
         trace_m25p80_read_sfdp(s, s->cur_addr, (uint8_t)r);
         s->cur_addr = (s->cur_addr + 1) & (M25P80_SFDP_MAX_SIZE - 1);
+        break;
+
+    case STATE_IGNORE:
         break;
 
     default:

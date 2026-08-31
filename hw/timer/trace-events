@@ -1,5 +1,10 @@
 # See docs/devel/tracing.rst for syntax documentation.
 
+# s5l8900_timer.c
+s5l8900_timer_irq(uint32_t status, bool level) "status=0x%08x level=%d"
+s5l8900_timer_state(unsigned index, uint64_t state, uint32_t count, uint32_t config) "timer=%u state=%" PRIu64 " count=0x%08x config=0x%08x"
+s5l8900_timer_tick(unsigned index, uint32_t state, uint32_t config, uint32_t status) "timer=%u state=%u config=0x%08x status=0x%08x"
+
 # slavio_timer.c
 slavio_timer_get_out(uint64_t limit, uint32_t counthigh, uint32_t count) "limit 0x%"PRIx64" count 0x%x0x%08x"
 slavio_timer_irq(uint32_t counthigh, uint32_t count) "callback: count 0x%x0x%08x"

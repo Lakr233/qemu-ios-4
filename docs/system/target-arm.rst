@@ -73,6 +73,7 @@ Board-specific documentation
 
    arm/max78000
    arm/integratorcp
+   arm/iphone3g
    arm/mps2
    arm/musca
    arm/realview

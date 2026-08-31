@@ -1,0 +1,60 @@
+{
+  "source": "https://github.com/tihmstar/fwkeydb/blob/edd12f71a6dddb615ef8c9b936bc8c60293bbe7d/keys/firmware/iPhone1%2C2/0x8900/5A347",
+  "components": [
+    {
+      "path": "018-3783-2.dmg",
+      "iv": "29681f625d1f61271ec3116601b8bcde",
+      "key": "850afc271132d15ae6989565567e65bf"
+    },
+    {
+      "path": "Firmware/all_flash/all_flash.n82ap.production/DeviceTree.n82ap.img3",
+      "iv": "f801d9f5a539a4cff9a2346593cc0e94",
+      "key": "b166c4676bf65ffcaab58b5f0b78fe7d"
+    },
+    {
+      "path": "Firmware/all_flash/all_flash.n82ap.production/iBoot.n82ap.RELEASE.img3",
+      "iv": "38d71e258626bbfe04d4657b25f6b054",
+      "key": "872781af5cb0878b9a8f79d604bf6bd8"
+    },
+    {
+      "path": "Firmware/all_flash/all_flash.n82ap.production/applelogo.s5l8900x.img3",
+      "iv": "5d1c8f19b86411f032d647de174ca7cd",
+      "key": "94bf8963c8ef945e919adb1ee38f8d74"
+    },
+    {
+      "path": "Firmware/all_flash/all_flash.n82ap.production/recoverymode.s5l8900x.img3",
+      "iv": "1007fd4b6d504082573ae48d96fa88e7",
+      "key": "94bd127dfec81a27a486d599b821875e"
+    },
+    {
+      "path": "Firmware/all_flash/all_flash.n82ap.production/needservice.s5l8900x.img3",
+      "iv": "a722c93e4a9dfd101e673cab380f20c7",
+      "key": "3bf51c19a575f709b8440a88426cca1c"
+    },
+    {
+      "path": "Firmware/all_flash/all_flash.n82ap.production/batterylow0.s5l8900x.img3",
+      "iv": "aa35ebd31aa4b234942c82c9cc554da2",
+      "key": "82ada2c6ded2d09c3641dce0a6e3b994"
+    },
+    {
+      "path": "Firmware/all_flash/all_flash.n82ap.production/batterylow1.s5l8900x.img3",
+      "iv": "8a75fd316a6ed1c50ee361560b3d2ff0",
+      "key": "5710d5ed5ecb579dc5ce19637968329a"
+    },
+    {
+      "path": "Firmware/all_flash/all_flash.n82ap.production/glyphcharging.s5l8900x.img3",
+      "iv": "6aad442a5849a45688fbcd7bc409ab9c",
+      "key": "855bbebec01ed2f1e939370645863fac"
+    },
+    {
+      "path": "Firmware/all_flash/all_flash.n82ap.production/glyphplugin.s5l8900x.img3",
+      "iv": "b2866546a751f9d6557c37e761c28401",
+      "key": "117f24929aa7c66e67d5ead2a0972780"
+    },
+    {
+      "path": "kernelcache.release.s5l8900x",
+      "iv": "3525bab8a8375143469c5c6a4533d9bc",
+      "key": "e8a54cb7b34773d67a2e6540c588129f"
+    }
+  ]
+}

@@ -8,6 +8,12 @@ config I8259
 config PL190
     bool
 
+config S5L8900_VIC
+    bool
+
+config S5L8900_EDGEIC
+    bool
+
 config HEX_L2VIC
     bool
 

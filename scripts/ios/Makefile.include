@@ -1,0 +1,532 @@
+# iPhone 3G development boot helpers.  These targets run from the QEMU build
+# directory, so source artifacts are rooted at SRC_PATH and generated files at
+# BUILD_DIR.
+
+IPHONE3G_ROOT := $(abspath $(SRC_PATH))
+IPHONE3G_FIRMWARE_PROFILE ?= 8C148
+ifeq ($(IPHONE3G_FIRMWARE_PROFILE),8C148)
+IPHONE3G_ARTIFACTS ?= $(IPHONE3G_ROOT)/.artifacts/firmware/8C148
+IPHONE3G_IPSW ?= $(IPHONE3G_ROOT)/.artifacts/firmware/iPhone1,2_4.2.1_8C148_Restore.ipsw
+IPHONE3G_FIRMWARE_MEMBERS := \
+	Firmware/dfu/iBSS.n82ap.RELEASE.dfu \
+	Firmware/dfu/iBEC.n82ap.RELEASE.dfu \
+	Firmware/all_flash/all_flash.n82ap.production/DeviceTree.n82ap.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/iBoot.n82ap.RELEASE.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/applelogo.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/recoverymode.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/batterylow0.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/batterylow1.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/glyphcharging.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/glyphplugin.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/batterycharging0.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/batterycharging1.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/batteryfull.s5l8900x.img3 \
+	038-0029-002.dmg \
+	kernelcache.release.n82
+IPHONE3G_RAMDISK_MEMBER := 038-0029-002.dmg
+IPHONE3G_KERNELCACHE_MEMBER := kernelcache.release.n82
+IPHONE3G_IBSS_ADDRESS ?= 0x18000000
+IPHONE3G_BOOT_ARGS_ADDRESS ?= 0x18020634
+IPHONE3G_SECURITY_EPOCH := 5
+IPHONE3G_BOOT_PROFILE_ARGS := --workaround-ios4-restore-crypto-keys
+IPHONE3G_RESTORE_PROFILE_ARGS = --probe-ios4-nor-batch \
+	--workaround-ios4-catalog-data-length \
+	--disable-ios4-ir-mcu \
+	--bypass-ios4-baseband \
+	--gdb $(IPHONE3G_GDB_HOST):$(IPHONE3G_GDB_PORT)
+IPHONE3G_RESTORE_PROFILE_EXTRA_ARGS :=
+IPHONE3G_KBAG_MANIFEST := $(IPHONE3G_ROOT)/scripts/ios/iphone1,2_8C148_kbags.json
+else ifeq ($(IPHONE3G_FIRMWARE_PROFILE),5A347)
+IPHONE3G_ARTIFACTS ?= $(IPHONE3G_ROOT)/.artifacts/firmware/5A347
+IPHONE3G_IPSW ?= $(IPHONE3G_ROOT)/.artifacts/firmware/iPhone1,2_2.0_5A347_Restore.ipsw
+IPHONE3G_FIRMWARE_MEMBERS := \
+	Firmware/dfu/iBSS.n82ap.RELEASE.dfu \
+	Firmware/dfu/iBEC.n82ap.RELEASE.dfu \
+	Firmware/all_flash/all_flash.n82ap.production/DeviceTree.n82ap.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/iBoot.n82ap.RELEASE.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/applelogo.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/recoverymode.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/needservice.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/batterylow0.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/batterylow1.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/glyphcharging.s5l8900x.img3 \
+	Firmware/all_flash/all_flash.n82ap.production/glyphplugin.s5l8900x.img3 \
+	018-3783-2.dmg \
+	kernelcache.release.s5l8900x
+IPHONE3G_RAMDISK_MEMBER := 018-3783-2.dmg
+IPHONE3G_KERNELCACHE_MEMBER := kernelcache.release.s5l8900x
+IPHONE3G_IBSS_ADDRESS ?= 0x22000000
+IPHONE3G_BOOT_ARGS_ADDRESS ?= 0x18016b30
+IPHONE3G_SECURITY_EPOCH := 4
+IPHONE3G_BOOT_PROFILE_ARGS := --ios2-control-upload --reconnect-timeout 120
+IPHONE3G_RESTORE_PROFILE_ARGS = --bypass-ios2-asr-checksum --bypass-ios2-nor-integrity --gdb $(IPHONE3G_GDB_HOST):$(IPHONE3G_GDB_PORT)
+IPHONE3G_RESTORE_PROFILE_EXTRA_ARGS := --skip-filesystem-wipe
+IPHONE3G_KBAG_MANIFEST := $(IPHONE3G_ROOT)/scripts/ios/iphone1,2_5A347_kbags.json
+else
+$(error unsupported IPHONE3G_FIRMWARE_PROFILE=$(IPHONE3G_FIRMWARE_PROFILE))
+endif
+IPHONE3G_HARDWARE_ARTIFACTS ?= $(IPHONE3G_ROOT)/.artifacts/firmware/8C148
+IPHONE3G_RUN_DIR ?= $(IPHONE3G_ROOT)/.artifacts/runs/iphone3g
+IPHONE3G_NAND ?= $(IPHONE3G_RUN_DIR)/nand.raw
+IPHONE3G_NOR ?= $(IPHONE3G_RUN_DIR)/nor.raw
+IPHONE3G_UART_LOG ?= $(IPHONE3G_RUN_DIR)/uart0.log
+IPHONE3G_UART4_SERIAL ?= null
+IPHONE3G_MONITOR ?= $(IPHONE3G_RUN_DIR)/monitor.sock
+IPHONE3G_QMP ?= $(IPHONE3G_RUN_DIR)/qmp.sock
+IPHONE3G_PID ?= $(IPHONE3G_RUN_DIR)/qemu.pid
+IPHONE3G_TRACE ?= $(IPHONE3G_RUN_DIR)/trace.log
+IPHONE3G_SCREENSHOT ?= $(IPHONE3G_RUN_DIR)/screen.png
+IPHONE3G_BOOT_LOG ?= $(IPHONE3G_RUN_DIR)/boot.log
+IPHONE3G_GID_KEY ?= $(IPHONE3G_RUN_DIR)/gid-key.bin
+IPHONE3G_UID_KEY ?= $(IPHONE3G_RUN_DIR)/uid-key.bin
+IPHONE3G_USB_HOST ?= 127.0.0.1
+IPHONE3G_USB_PORT ?= 1337
+IPHONE3G_USBMUXD_HOST ?= 127.0.0.1
+IPHONE3G_USBMUXD_PORT ?= 27015
+IPHONE3G_SHUTDOWN_USBMUXD_PORT ?= 27016
+IPHONE3G_UART4_SOCKET ?= $(IPHONE3G_RUN_DIR)/uart4.sock
+IPHONE3G_GDB_HOST ?= 127.0.0.1
+IPHONE3G_GDB_PORT ?= 1234
+IPHONE3G_HACKTIVATION_TIMEOUT ?= 300
+IPHONE3G_DATA_ARK_TIMEOUT ?= 300
+IPHONE3G_SHUTDOWN_TIMEOUT ?= 180
+IPHONE3G_CHECKPOINT_TIMEOUT ?= 180
+IPHONE3G_DISPLAY ?= cocoa
+IPHONE3G_MBX_METAL ?= 0
+IPHONE3G_TCG_THREAD ?= single
+IPHONE3G_BOOT_ARGS ?= rd=md0 nand-enable-reformat=1 serial=3
+IPHONE3G_BOOT_EXTRA_ARGS ?=
+IPHONE3G_QEMU_EXTRA_ARGS ?=
+
+IPHONE3G_QEMU := $(BUILD_DIR)/qemu-system-arm
+IPHONE3G_PYTHON := $(IPHONE3G_ROOT)/.venv/bin/python
+IPHONE3G_USBMUXD := $(BUILD_DIR)/usbmuxd-usboip
+IPHONE3G_PPP_NAT := $(BUILD_DIR)/iphone3g-ppp-nat
+IPHONE3G_PPP_WITNESS_PACKETS ?= 0
+IPHONE3G_USBMUXD_CONFIG := $(IPHONE3G_RUN_DIR)/usbmuxd
+IPHONE3G_USBMUXD_EXTRA_ARGS ?=
+IPHONE3G_USBMUXD_ETHERNET_PROBE ?= 0
+IPHONE3G_RESTORE_EXTRA_ARGS ?= $(IPHONE3G_RESTORE_PROFILE_EXTRA_ARGS)
+IPHONE3G_SYSTEM_IMAGE ?=
+IPHONE3G_PYMOBILEDEVICE_ARGS ?= --help
+IPHONE3G_NAND_RESET := $(IPHONE3G_ROOT)/scripts/ios/reset-iphone3g-nand.py
+IPHONE3G_NAND_CREATE := $(IPHONE3G_ROOT)/scripts/ios/create-iphone3g-nand.py
+IPHONE3G_PPP_PROVISION := $(IPHONE3G_ROOT)/scripts/ios/provision-iphone3g-ppp.py
+IPHONE3G_RESTORE_ANALYZER := $(IPHONE3G_ROOT)/scripts/ios/analyze-iphone3g-restore.py
+IPHONE3G_RESTORE_SOURCE ?=
+IPHONE3G_RESTORE_SOURCE_OFFSET ?=
+IPHONE3G_RESTORE_SOURCE_BYTES ?=
+IPHONE3G_RESTORE_TRACE_EVENTS := s5l8900_adm_fmc_run \
+	s5l8900_adm_fmc_write_page s5l8900_adm_fmc_write_skipped \
+	s5l8900_adm_fmc_write_failure s5l8900_adm_fmc_target_failure
+IPHONE3G_NOR_RESET := $(IPHONE3G_ROOT)/scripts/ios/reset-iphone3g-nor.py
+IPHONE3G_SWIPE := $(IPHONE3G_ROOT)/scripts/ios/swipe-iphone3g.py
+IPHONE3G_SHUTDOWN := $(IPHONE3G_ROOT)/scripts/ios/shutdown-iphone3g.py
+IPHONE3G_CHECKPOINT_HELPER := $(IPHONE3G_ROOT)/scripts/ios/checkpoint-iphone3g.py
+IPHONE3G_FUSE_ENSURE := $(IPHONE3G_ROOT)/scripts/ios/ensure-iphone3g-fuse.py
+IPHONE3G_EMPTY_BOOTROM := $(IPHONE3G_RUN_DIR)/empty-bootrom.bin
+IPHONE3G_NAND_BASE := $(IPHONE3G_HARDWARE_ARTIFACTS)/iphone3g-nand-erased.raw
+IPHONE3G_KBAGS := $(IPHONE3G_ARTIFACTS)/gid-kbags.bin
+IPHONE3G_IBSS := $(IPHONE3G_ARTIFACTS)/iBSS.n82ap.RELEASE.bin
+IPHONE3G_SIGNED := $(IPHONE3G_ARTIFACTS)/signed
+IPHONE3G_IBEC := $(IPHONE3G_SIGNED)/Firmware/dfu/iBEC.n82ap.RELEASE.dfu
+IPHONE3G_RAMDISK := $(IPHONE3G_SIGNED)/$(IPHONE3G_RAMDISK_MEMBER)
+IPHONE3G_DEVICETREE := $(IPHONE3G_SIGNED)/Firmware/all_flash/all_flash.n82ap.production/DeviceTree.n82ap.img3
+IPHONE3G_KERNELCACHE := $(IPHONE3G_SIGNED)/$(IPHONE3G_KERNELCACHE_MEMBER)
+IPHONE3G_CHECKPOINT ?= $(IPHONE3G_RUN_DIR)/ready-checkpoint
+IPHONE3G_QUICK_RUN_DIR ?= $(IPHONE3G_ROOT)/.artifacts/runs/iphone3g-quick
+IPHONE3G_ACTIVE_RUN_DIR = $(if \
+	$(wildcard $(IPHONE3G_RUN_DIR)/qmp.sock),$(IPHONE3G_RUN_DIR),$(if \
+	$(wildcard $(IPHONE3G_QUICK_RUN_DIR)/qmp.sock),$(IPHONE3G_QUICK_RUN_DIR),$(IPHONE3G_RUN_DIR)))
+IPHONE3G_ACTIVE_QMP = $(IPHONE3G_ACTIVE_RUN_DIR)/qmp.sock
+IPHONE3G_ACTIVE_MONITOR = $(IPHONE3G_ACTIVE_RUN_DIR)/monitor.sock
+
+.PHONY: iphone3g-help iphone3g-firmware iphone3g-prepare \
+	iphone3g-reset-nand iphone3g-reset-nor iphone3g-qemu \
+	iphone3g-qemu-ppp iphone3g-enable-ppp iphone3g-disable-ppp \
+	iphone3g-ppp-nat-build iphone3g-ppp-nat \
+	iphone3g-boot iphone3g-boot-installed iphone3g-boot-installed-hacktivated \
+	iphone3g-install-activation \
+	iphone3g-log iphone3g-monitor iphone3g-screenshot \
+	iphone3g-stop iphone3g-test iphone3g-usbmuxd-build \
+	iphone3g-usbmuxd iphone3g-restored-probe iphone3g-restore-system \
+	iphone3g-analyze-restore iphone3g-trace-restore-on \
+	iphone3g-trace-restore-off iphone3g-pymobiledevice3 iphone3g-swipe-unlock \
+	iphone3g-qemu-play iphone3g-qemu-play-fast iphone3g-play \
+	iphone3g-play-fast iphone3g-wake iphone3g-shutdown iphone3g-reboot \
+	iphone3g-checkpoint iphone3g-resume
+
+iphone3g-help:
+	@echo 'iPhone 3G development boot targets:'
+	@echo '  make iphone3g-firmware Validate the IPSW and extract signed boot inputs'
+	@echo '  make iphone3g-prepare  Create the persistent copy-on-write NAND image'
+	@echo '  make iphone3g-reset-nand  Fully erase the development NAND image'
+	@echo '  make iphone3g-reset-nor  Recreate the SPI NOR and its two NVRAM banks'
+	@echo '  make iphone3g-qemu     Start the TCG-only emulator (keep this terminal open)'
+	@echo '  make iphone3g-enable-ppp  Enable the size-neutral stock pppd launch job'
+	@echo '  make iphone3g-disable-ppp Restore the exact stock pilotfish launch job'
+	@echo '  make iphone3g-qemu-ppp Start QEMU with UART4 on a local socket'
+	@echo '  make iphone3g-ppp-nat Connect UART4 PPP to rootless libslirp NAT'
+	@echo '  make iphone3g-boot     Upload iBEC, ramdisk, DeviceTree, and kernelcache'
+	@echo '  make iphone3g-boot-installed  Boot the persistent NAND root through iBEC'
+	@echo '  make iphone3g-boot-installed-hacktivated  Apply transient 8C148 hacktivation'
+	@echo '  make iphone3g-install-activation  Persist the Legacy factory-activation record'
+	@echo '  make iphone3g-log      Follow the guest UART log'
+	@echo '  make iphone3g-monitor  Open the QEMU monitor'
+	@echo '  make iphone3g-screenshot  Capture the fixed 320x480 display'
+	@echo '  make iphone3g-swipe-unlock  Slide the iOS lock control through Zephyr2'
+	@echo '  make iphone3g-qemu-play     Run resizable Cocoa with cursor and software MBX'
+	@echo '  make iphone3g-play          Prepare, open Cocoa, and boot installed iOS 4'
+	@echo '  make iphone3g-play-fast     Try MTTCG startup (experimental until stress-tested)'
+	@echo '  make iphone3g-wake          Press the modeled iPhone Home button through QMP'
+	@echo '  make iphone3g-shutdown      Commit the clean FTL root, then stop QEMU'
+	@echo '  make iphone3g-reboot        Commit storage and start a new playable boot'
+	@echo '  make iphone3g-checkpoint    Snapshot the current ready VM, then keep it running'
+	@echo '  make iphone3g-resume        Start a disposable fast clone of that checkpoint'
+	@echo '  make iphone3g-usbmuxd-build  Build the pinned upstream usbmuxd IOSU bridge'
+	@echo '  make iphone3g-usbmuxd  Expose Guest AppleUSBMux on 127.0.0.1:27015'
+	@echo '  make iphone3g-restored-probe  Verify the live restored service and N82 identity'
+	@echo '  make iphone3g-restore-system  Install the official 4.2.1 system image to NAND'
+	@echo '  make iphone3g-analyze-restore Compare restored NAND with an extracted HFS image'
+	@echo '  make iphone3g-trace-restore-on  Enable bounded restore tracing at the monitor'
+	@echo '  make iphone3g-trace-restore-off Disable bounded restore tracing at the monitor'
+	@echo '  make iphone3g-pymobiledevice3  Run any pinned pymobiledevice3 command'
+	@echo '  make iphone3g-stop     Ask QEMU to quit through its monitor'
+	@echo '  make iphone3g-test     Run the focused C and Python regression tests'
+	@echo ''
+	@echo 'Common overrides:'
+	@echo '  IPHONE3G_USB_PORT=1337 IPHONE3G_DISPLAY=cocoa'
+	@echo '  IPHONE3G_USBMUXD_PORT=27015'
+	@echo '  IPHONE3G_USBMUXD_ETHERNET_PROBE=1 (diagnostic alt-setting probe)'
+	@echo '  IPHONE3G_UART4_SOCKET=/path/to/uart4.sock'
+	@echo '  IPHONE3G_PPP_WITNESS_PACKETS=1 (exit after bidirectional IP proof)'
+	@echo '  IPHONE3G_MBX_METAL=1 (macOS experiment; requires a real Metal device)'
+	@echo '  IPHONE3G_TCG_THREAD=multi (experimental faster startup)'
+	@echo '  IPHONE3G_PYMOBILEDEVICE_ARGS="usbmux list"'
+	@echo '  IPHONE3G_GDB_PORT=1234'
+	@echo '  IPHONE3G_DATA_ARK_TIMEOUT=300'
+	@echo '  IPHONE3G_SHUTDOWN_TIMEOUT=180'
+	@echo '  IPHONE3G_CHECKPOINT_TIMEOUT=180'
+	@echo '  IPHONE3G_UART4_SERIAL=chardev:uart4 (define uart4 in IPHONE3G_QEMU_EXTRA_ARGS)'
+	@echo '  IPHONE3G_FIRMWARE_PROFILE=5A347 IPHONE3G_IPSW=/path/to/iOS-2.0.ipsw'
+	@echo '  IPHONE3G_RUN_DIR=/path/to/ignored/project-run-directory'
+	@echo '  IPHONE3G_GID_KEY=/path/to/persistent-16-byte-virtual-gid-key'
+	@echo '  IPHONE3G_UID_KEY=/path/to/persistent-16-byte-uid-key'
+	@echo '  IPHONE3G_BOOT_ARGS="rd=md0 nand-enable-reformat=1 serial=3"'
+	@echo '  IPHONE3G_BOOT_EXTRA_ARGS=--wait-before-bootx'
+	@echo '  The 5A347 profile skips the security wipe and authenticates ASR/NOR gates'
+	@echo '  IPHONE3G_QEMU_EXTRA_ARGS="-trace enable=pcf50635_*"'
+
+iphone3g-firmware:
+	@test -x "$(IPHONE3G_PYTHON)" || { echo 'missing $(IPHONE3G_PYTHON); run scripts/ios/bootstrap-macos.sh' >&2; exit 1; }
+	@test -f "$(IPHONE3G_IPSW)" || { echo 'missing $(IPHONE3G_IPSW); run scripts/ios/fetch-firmware.sh' >&2; exit 1; }
+	@"$(IPHONE3G_PYTHON)" "$(IPHONE3G_ROOT)/scripts/ios/inspect-firmware.py" \
+		--profile "$(IPHONE3G_FIRMWARE_PROFILE)" "$(IPHONE3G_IPSW)" >/dev/null
+	@for member in $(IPHONE3G_FIRMWARE_MEMBERS); do \
+		destination="$(IPHONE3G_SIGNED)/$$member"; \
+		if test ! -f "$$destination"; then \
+			mkdir -p "$$(dirname "$$destination")"; \
+			unzip -p "$(IPHONE3G_IPSW)" "$$member" >"$$destination.tmp"; \
+			mv "$$destination.tmp" "$$destination"; \
+		fi; \
+		done
+	@if test ! -f "$(IPHONE3G_IBSS)"; then \
+		"$(IPHONE3G_PYTHON)" "$(IPHONE3G_ROOT)/scripts/ios/img3_extract.py" \
+			"$(IPHONE3G_SIGNED)/Firmware/dfu/iBSS.n82ap.RELEASE.dfu" \
+			"$(IPHONE3G_IBSS)"; \
+	fi
+	@set -eu; \
+		tmp="$(IPHONE3G_KBAGS).tmp"; \
+		trap 'rm -f "$$tmp"' EXIT HUP INT TERM; \
+		rm -f "$$tmp"; \
+		"$(IPHONE3G_PYTHON)" "$(IPHONE3G_ROOT)/scripts/ios/build-kbag-oracle.py" \
+			"$(IPHONE3G_KBAG_MANIFEST)" "$(IPHONE3G_SIGNED)" "$$tmp"; \
+		if test -f "$(IPHONE3G_KBAGS)" && cmp -s "$$tmp" "$(IPHONE3G_KBAGS)"; then \
+			rm "$$tmp"; \
+		else \
+			mv "$$tmp" "$(IPHONE3G_KBAGS)"; \
+		fi; \
+		trap - EXIT HUP INT TERM
+	@echo "validated $(IPHONE3G_IPSW) for $(IPHONE3G_FIRMWARE_PROFILE)"
+
+iphone3g-prepare:
+	@test -x "$(IPHONE3G_QEMU)" || { echo 'missing $(IPHONE3G_QEMU); build qemu-system-arm first' >&2; exit 1; }
+	@test -x "$(IPHONE3G_PYTHON)" || { echo 'missing $(IPHONE3G_PYTHON); run scripts/ios/bootstrap-macos.sh' >&2; exit 1; }
+	@missing=0; \
+	for file in "$(IPHONE3G_KBAGS)" "$(IPHONE3G_IBSS)" "$(IPHONE3G_IBEC)" "$(IPHONE3G_RAMDISK)" "$(IPHONE3G_DEVICETREE)" "$(IPHONE3G_KERNELCACHE)"; do \
+		test -f "$$file" || missing=1; \
+	done; \
+	if test "$$missing" -ne 0; then \
+		$(MAKE) iphone3g-firmware; \
+	fi
+	@"$(IPHONE3G_PYTHON)" "$(IPHONE3G_NAND_CREATE)" "$(IPHONE3G_NAND_BASE)"
+	@for file in "$(IPHONE3G_KBAGS)" "$(IPHONE3G_IBSS)" "$(IPHONE3G_IBEC)" "$(IPHONE3G_RAMDISK)" "$(IPHONE3G_DEVICETREE)" "$(IPHONE3G_KERNELCACHE)"; do \
+		test -f "$$file" || { echo "missing firmware artifact: $$file" >&2; exit 1; }; \
+	done
+	@mkdir -p "$(IPHONE3G_RUN_DIR)"
+	@"$(IPHONE3G_PYTHON)" "$(IPHONE3G_FUSE_ENSURE)" gid "$(IPHONE3G_GID_KEY)"
+	@"$(IPHONE3G_PYTHON)" "$(IPHONE3G_FUSE_ENSURE)" uid "$(IPHONE3G_UID_KEY)"
+	@test -e "$(IPHONE3G_EMPTY_BOOTROM)" || dd if=/dev/zero of="$(IPHONE3G_EMPTY_BOOTROM)" bs=65536 count=1 2>/dev/null
+	@if test ! -e "$(IPHONE3G_NAND)"; then \
+		cp -c "$(IPHONE3G_NAND_BASE)" "$(IPHONE3G_NAND)"; \
+	fi
+	@chmod u+w "$(IPHONE3G_NAND)"
+	@if test ! -e "$(IPHONE3G_NOR)"; then \
+		"$(IPHONE3G_PYTHON)" "$(IPHONE3G_NOR_RESET)" "$(IPHONE3G_NOR)"; \
+	fi
+	@echo "prepared $(IPHONE3G_RUN_DIR)"
+
+iphone3g-reset-nand: iphone3g-prepare
+	"$(IPHONE3G_PYTHON)" "$(IPHONE3G_NAND_RESET)" "$(IPHONE3G_NAND)"
+
+iphone3g-reset-nor: iphone3g-prepare
+	"$(IPHONE3G_PYTHON)" "$(IPHONE3G_NOR_RESET)" "$(IPHONE3G_NOR)"
+
+iphone3g-qemu: iphone3g-prepare
+	$(IPHONE3G_QEMU) \
+		-M iphone3g,security-epoch=$(IPHONE3G_SECURITY_EPOCH) \
+		-accel tcg,thread=$(IPHONE3G_TCG_THREAD) \
+		-smp 1 \
+		-bios "$(IPHONE3G_EMPTY_BOOTROM)" \
+		-device loader,file="$(IPHONE3G_IBSS)",addr=$(IPHONE3G_IBSS_ADDRESS),cpu-num=0 \
+		-drive if=mtd,format=raw,file="$(IPHONE3G_NAND)" \
+		-drive if=pflash,format=raw,file="$(IPHONE3G_NOR)" \
+		-object secret,id=iphone3g-kbags,format=raw,file="$(IPHONE3G_KBAGS)" \
+		-global s5l8900-aes.gid-kbag-secret=iphone3g-kbags \
+		-object secret,id=iphone3g-gid,format=raw,file="$(IPHONE3G_GID_KEY)" \
+		-global s5l8900-aes.gid-key-secret=iphone3g-gid \
+		-object secret,id=iphone3g-uid,format=raw,file="$(IPHONE3G_UID_KEY)" \
+		-global s5l8900-aes.uid-key-secret=iphone3g-uid \
+		-chardev socket,id=usboip,host=$(IPHONE3G_USB_HOST),port=$(IPHONE3G_USB_PORT),server=on,wait=off \
+		-global s5l8900-usb.chardev=usboip \
+		-chardev file,id=uart0,path="$(IPHONE3G_UART_LOG)",append=on \
+		-serial chardev:uart0 \
+		-serial $(IPHONE3G_UART4_SERIAL) \
+		-display $(IPHONE3G_DISPLAY) \
+		-monitor unix:"$(IPHONE3G_MONITOR)",server=on,wait=off \
+		-qmp unix:"$(IPHONE3G_QMP)",server=on,wait=off \
+		-pidfile "$(IPHONE3G_PID)" \
+		-gdb tcp:$(IPHONE3G_GDB_HOST):$(IPHONE3G_GDB_PORT) \
+		$(if $(filter 1,$(IPHONE3G_MBX_METAL)),-global s5l8900-mbx.metal=on,) \
+		$(IPHONE3G_QEMU_EXTRA_ARGS) \
+		-trace enable=s5l8900_adm_fmc_read_failure \
+		-trace enable=s5l8900_aes_failure,file="$(IPHONE3G_TRACE)"
+
+iphone3g-qemu-play:
+	$(MAKE) iphone3g-qemu \
+		IPHONE3G_DISPLAY='cocoa,show-cursor=on,zoom-to-fit=on,zoom-interpolation=on'
+
+iphone3g-qemu-play-fast:
+	$(MAKE) iphone3g-qemu-play IPHONE3G_TCG_THREAD=multi
+
+iphone3g-play: iphone3g-prepare
+	@if test -f "$(IPHONE3G_PID)"; then \
+		read pid <"$(IPHONE3G_PID)"; \
+		if test -n "$$pid" && kill -0 "$$pid" 2>/dev/null; then \
+			echo "iPhone 3G QEMU is already running (pid $$pid)" >&2; \
+			exit 1; \
+		fi; \
+	fi
+	@rm -f "$(IPHONE3G_BOOT_LOG)"
+	@echo "boot progress: $(IPHONE3G_BOOT_LOG)"
+	@(attempt=0; \
+	while ! test -S "$(IPHONE3G_MONITOR)"; do \
+		attempt=$$((attempt + 1)); \
+		if test "$$attempt" -ge 300; then \
+			echo 'QEMU monitor did not become ready' >&2; \
+			exit 1; \
+		fi; \
+		sleep 0.1; \
+	done; \
+	sleep 2; \
+	exec $(MAKE) --no-print-directory iphone3g-boot-installed) >"$(IPHONE3G_BOOT_LOG)" 2>&1 & \
+	boot_pid=$$!; \
+	trap 'kill "$$boot_pid" 2>/dev/null || true' 0 1 2 15; \
+	status=0; \
+	$(MAKE) --no-print-directory iphone3g-qemu-play || status=$$?; \
+	boot_status=0; \
+	wait "$$boot_pid" || boot_status=$$?; \
+	trap - 0 1 2 15; \
+	if test "$$status" -eq 0 && test "$$boot_status" -ne 0; then \
+		tail -n 40 "$(IPHONE3G_BOOT_LOG)" >&2; \
+		exit "$$boot_status"; \
+	fi; \
+	exit "$$status"
+
+iphone3g-play-fast:
+	$(MAKE) iphone3g-play IPHONE3G_TCG_THREAD=multi
+
+iphone3g-qemu-ppp:
+	$(MAKE) iphone3g-qemu \
+		IPHONE3G_UART4_SERIAL=chardev:uart4 \
+		IPHONE3G_QEMU_EXTRA_ARGS='-chardev socket,id=uart4,path=$(IPHONE3G_UART4_SOCKET),server=on,wait=off $(IPHONE3G_QEMU_EXTRA_ARGS)'
+
+iphone3g-enable-ppp iphone3g-disable-ppp:
+	@test ! -S "$(IPHONE3G_MONITOR)" || { echo 'stop QEMU before editing its NAND' >&2; exit 1; }
+	@test -f "$(IPHONE3G_NAND)" || { echo 'persistent NAND does not exist; run make iphone3g-prepare first' >&2; exit 1; }
+	"$(IPHONE3G_PYTHON)" "$(IPHONE3G_PPP_PROVISION)" \
+		$(if $(filter iphone3g-enable-ppp,$@),enable,disable) "$(IPHONE3G_NAND)"
+
+iphone3g-boot:
+	$(IPHONE3G_PYTHON) $(IPHONE3G_ROOT)/scripts/ios/boot-iphone3g.py \
+		--usboip $(IPHONE3G_USB_HOST):$(IPHONE3G_USB_PORT) \
+		--ibec "$(IPHONE3G_IBEC)" \
+		--ramdisk "$(IPHONE3G_RAMDISK)" \
+		--device-tree "$(IPHONE3G_DEVICETREE)" \
+		--kernelcache "$(IPHONE3G_KERNELCACHE)" \
+		--gdb $(IPHONE3G_GDB_HOST):$(IPHONE3G_GDB_PORT) \
+		--boot-args-address $(IPHONE3G_BOOT_ARGS_ADDRESS) \
+		--boot-args "$(IPHONE3G_BOOT_ARGS)" \
+		--uart-log "$(IPHONE3G_UART_LOG)" \
+		$(IPHONE3G_BOOT_PROFILE_ARGS) $(IPHONE3G_BOOT_EXTRA_ARGS)
+
+iphone3g-boot-installed:
+	$(MAKE) iphone3g-boot \
+		IPHONE3G_BOOT_ARGS='rd=disk0s1 -v serial=3' \
+		IPHONE3G_BOOT_PROFILE_ARGS='--hide-unmodeled-baseband'
+
+iphone3g-boot-installed-hacktivated:
+	$(MAKE) iphone3g-boot \
+		IPHONE3G_BOOT_ARGS='rd=disk0s1 -v serial=3' \
+		IPHONE3G_BOOT_PROFILE_ARGS='--hacktivate-ios4 --hide-unmodeled-baseband --hacktivation-timeout $(IPHONE3G_HACKTIVATION_TIMEOUT)'
+
+iphone3g-install-activation:
+	$(MAKE) iphone3g-boot \
+		IPHONE3G_BOOT_ARGS='rd=md0 -v serial=3' \
+		IPHONE3G_BOOT_PROFILE_ARGS='--install-ios4-data-ark --data-ark-timeout $(IPHONE3G_DATA_ARK_TIMEOUT)'
+
+iphone3g-log:
+	@test -f "$(IPHONE3G_UART_LOG)" || { echo 'UART log does not exist; start make iphone3g-qemu first' >&2; exit 1; }
+	tail -F "$(IPHONE3G_UART_LOG)"
+
+iphone3g-monitor:
+	@test -S "$(IPHONE3G_ACTIVE_MONITOR)" || { echo 'monitor socket does not exist; start make iphone3g-qemu first' >&2; exit 1; }
+	nc -U "$(IPHONE3G_ACTIVE_MONITOR)"
+
+iphone3g-screenshot:
+	@test -S "$(IPHONE3G_ACTIVE_MONITOR)" || { echo 'monitor socket does not exist; start make iphone3g-qemu first' >&2; exit 1; }
+	@printf 'screendump %s -f png\n' "$(IPHONE3G_SCREENSHOT)" | nc -U "$(IPHONE3G_ACTIVE_MONITOR)" >/dev/null
+	@echo "captured $(IPHONE3G_SCREENSHOT)"
+
+iphone3g-swipe-unlock:
+	@test -S "$(IPHONE3G_ACTIVE_QMP)" || { echo 'QMP socket does not exist; start make iphone3g-qemu first' >&2; exit 1; }
+	"$(IPHONE3G_PYTHON)" "$(IPHONE3G_SWIPE)" --qmp "$(IPHONE3G_ACTIVE_QMP)"
+
+iphone3g-wake:
+	@test -S "$(IPHONE3G_ACTIVE_QMP)" || { echo 'QMP socket does not exist; start make iphone3g-qemu first' >&2; exit 1; }
+	"$(IPHONE3G_PYTHON)" "$(IPHONE3G_SWIPE)" --qmp "$(IPHONE3G_ACTIVE_QMP)" --key home --key-duration 2
+
+iphone3g-stop:
+	@test -S "$(IPHONE3G_ACTIVE_MONITOR)" || { echo 'monitor socket does not exist; QEMU is not running' >&2; exit 1; }
+	@printf 'quit\n' | nc -U "$(IPHONE3G_ACTIVE_MONITOR)" >/dev/null
+
+iphone3g-shutdown: iphone3g-usbmuxd-build
+	"$(IPHONE3G_PYTHON)" "$(IPHONE3G_SHUTDOWN)" \
+		--python "$(IPHONE3G_PYTHON)" \
+		--client "$(IPHONE3G_ROOT)/scripts/ios/pymobiledevice3-usboip.py" \
+		--usboip $(IPHONE3G_USB_HOST):$(IPHONE3G_USB_PORT) \
+		--usbmuxd "$(IPHONE3G_USBMUXD)" \
+		--usbmuxd-address $(IPHONE3G_USBMUXD_HOST):$(IPHONE3G_SHUTDOWN_USBMUXD_PORT) \
+		--usbmuxd-config "$(IPHONE3G_USBMUXD_CONFIG)" \
+		--trace-log "$(IPHONE3G_TRACE)" \
+		--monitor "$(IPHONE3G_MONITOR)" \
+		--pidfile "$(IPHONE3G_PID)" \
+		--qemu "$(IPHONE3G_QEMU)" \
+		--timeout $(IPHONE3G_SHUTDOWN_TIMEOUT)
+
+iphone3g-reboot: iphone3g-shutdown
+	$(MAKE) iphone3g-play
+
+iphone3g-checkpoint:
+	@test -S "$(IPHONE3G_QMP)" || { echo 'QMP socket does not exist; start make iphone3g-play first' >&2; exit 1; }
+	"$(IPHONE3G_PYTHON)" "$(IPHONE3G_CHECKPOINT_HELPER)" create \
+		--qmp "$(IPHONE3G_QMP)" \
+		--checkpoint "$(IPHONE3G_CHECKPOINT)" \
+		--nand "$(IPHONE3G_NAND)" \
+		--nor "$(IPHONE3G_NOR)" \
+		--gid-key "$(IPHONE3G_GID_KEY)" \
+		--uid-key "$(IPHONE3G_UID_KEY)" \
+		--timeout $(IPHONE3G_CHECKPOINT_TIMEOUT)
+
+iphone3g-resume:
+	"$(IPHONE3G_PYTHON)" "$(IPHONE3G_CHECKPOINT_HELPER)" prepare-resume \
+		--checkpoint "$(IPHONE3G_CHECKPOINT)" \
+		--run-directory "$(IPHONE3G_QUICK_RUN_DIR)"
+	@set -e; \
+	"$(IPHONE3G_PYTHON)" "$(IPHONE3G_CHECKPOINT_HELPER)" resume-vm \
+		--qmp "$(IPHONE3G_QUICK_RUN_DIR)/qmp.sock" \
+		--timeout $(IPHONE3G_CHECKPOINT_TIMEOUT) & \
+	resume_pid=$$!; \
+	trap 'kill "$$resume_pid" 2>/dev/null || true' 0 1 2 15; \
+	$(MAKE) iphone3g-qemu-play \
+		IPHONE3G_RUN_DIR="$(IPHONE3G_QUICK_RUN_DIR)" \
+		IPHONE3G_CHECKPOINT="$(IPHONE3G_CHECKPOINT)" \
+		IPHONE3G_QEMU_EXTRA_ARGS='-incoming file:$(IPHONE3G_CHECKPOINT)/vmstate'
+
+iphone3g-usbmuxd-build:
+	@"$(IPHONE3G_ROOT)/scripts/ios/build-usbmuxd-usboip.sh" "$(IPHONE3G_USBMUXD)"
+
+iphone3g-ppp-nat-build:
+	@"$(IPHONE3G_ROOT)/scripts/ios/build-iphone3g-ppp-nat.sh" "$(IPHONE3G_PPP_NAT)"
+
+iphone3g-ppp-nat: iphone3g-ppp-nat-build
+	"$(IPHONE3G_PPP_NAT)" --socket "$(IPHONE3G_UART4_SOCKET)" \
+		$(if $(filter-out 0,$(IPHONE3G_PPP_WITNESS_PACKETS)),--witness-packets $(IPHONE3G_PPP_WITNESS_PACKETS),)
+
+iphone3g-usbmuxd: iphone3g-usbmuxd-build
+	@mkdir -p "$(IPHONE3G_USBMUXD_CONFIG)"
+	QEMU_IOSU_ADDRESS=$(IPHONE3G_USB_HOST):$(IPHONE3G_USB_PORT) \
+	QEMU_IOSU_ETHERNET_PROBE=$(IPHONE3G_USBMUXD_ETHERNET_PROBE) \
+		"$(IPHONE3G_USBMUXD)" -f -p \
+		-S $(IPHONE3G_USBMUXD_HOST):$(IPHONE3G_USBMUXD_PORT) \
+		-P NONE -C "$(IPHONE3G_USBMUXD_CONFIG)" \
+		$(IPHONE3G_USBMUXD_EXTRA_ARGS)
+
+iphone3g-restored-probe:
+	@test -x "$(IPHONE3G_PYTHON)" || { echo 'missing $(IPHONE3G_PYTHON); run scripts/ios/bootstrap-macos.sh' >&2; exit 1; }
+	"$(IPHONE3G_PYTHON)" "$(IPHONE3G_ROOT)/scripts/ios/probe-restored.py" \
+		--usbmuxd $(IPHONE3G_USBMUXD_HOST):$(IPHONE3G_USBMUXD_PORT)
+
+iphone3g-restore-system:
+	@test -x "$(IPHONE3G_PYTHON)" || { echo 'missing $(IPHONE3G_PYTHON); run scripts/ios/bootstrap-macos.sh' >&2; exit 1; }
+	"$(IPHONE3G_PYTHON)" "$(IPHONE3G_ROOT)/scripts/ios/restore-iphone3g.py" \
+		--ipsw "$(IPHONE3G_IPSW)" \
+		--usbmuxd $(IPHONE3G_USBMUXD_HOST):$(IPHONE3G_USBMUXD_PORT) \
+		--uart-log "$(IPHONE3G_UART_LOG)" \
+		$(if $(IPHONE3G_SYSTEM_IMAGE),--system-image "$(IPHONE3G_SYSTEM_IMAGE)",) \
+		$(IPHONE3G_RESTORE_PROFILE_ARGS) $(IPHONE3G_RESTORE_EXTRA_ARGS)
+
+iphone3g-analyze-restore:
+	@test -n "$(IPHONE3G_RESTORE_SOURCE)" || { \
+		echo 'set IPHONE3G_RESTORE_SOURCE to the extracted raw HFS image' >&2; \
+		exit 1; \
+	}
+	"$(IPHONE3G_PYTHON)" "$(IPHONE3G_RESTORE_ANALYZER)" \
+		--nand "$(IPHONE3G_NAND)" \
+		--source-hfs "$(IPHONE3G_RESTORE_SOURCE)" \
+		$(if $(IPHONE3G_RESTORE_SOURCE_OFFSET),--source-offset $(IPHONE3G_RESTORE_SOURCE_OFFSET),) \
+		$(if $(IPHONE3G_RESTORE_SOURCE_BYTES),--source-bytes $(IPHONE3G_RESTORE_SOURCE_BYTES),)
+
+iphone3g-trace-restore-on iphone3g-trace-restore-off:
+	@test -S "$(IPHONE3G_MONITOR)" || { echo 'monitor socket does not exist; start make iphone3g-qemu first' >&2; exit 1; }
+	@for event in $(IPHONE3G_RESTORE_TRACE_EVENTS); do \
+		printf 'trace-event %s %s\n' "$$event" "$(if $(filter %-on,$@),on,off)"; \
+	done | nc -U "$(IPHONE3G_MONITOR)" >/dev/null
+	@echo 'restore tracing $(if $(filter %-on,$@),enabled,disabled) in $(IPHONE3G_TRACE)'
+
+iphone3g-pymobiledevice3:
+	@test -x "$(IPHONE3G_PYTHON)" || { echo 'missing $(IPHONE3G_PYTHON); run scripts/ios/bootstrap-macos.sh' >&2; exit 1; }
+	"$(IPHONE3G_PYTHON)" "$(IPHONE3G_ROOT)/scripts/ios/pymobiledevice3-usboip.py" \
+		--usboip $(IPHONE3G_USB_HOST):$(IPHONE3G_USB_PORT) \
+		--usbmuxd $(IPHONE3G_USBMUXD_HOST):$(IPHONE3G_USBMUXD_PORT) \
+		$(IPHONE3G_PYMOBILEDEVICE_ARGS)
+
+iphone3g-test: qemu-system-arm tests/qtest/iphone3g-test
+	$(CC) -std=c11 -Wall -Wextra -Werror \
+		"$(IPHONE3G_ROOT)/scripts/ios/iphone3g-ppp.c" \
+		"$(IPHONE3G_ROOT)/scripts/ios/test-iphone3g-ppp.c" \
+		-o "$(BUILD_DIR)/test-iphone3g-ppp"
+	"$(BUILD_DIR)/test-iphone3g-ppp"
+	$(MESON) test 'qemu:qtest-arm/iphone3g-test' --print-errorlogs
+	cd "$(IPHONE3G_ROOT)" && $(IPHONE3G_PYTHON) \
+		-W error::ResourceWarning -m unittest discover scripts/ios/tests

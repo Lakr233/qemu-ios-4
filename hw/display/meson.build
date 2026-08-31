@@ -26,6 +26,15 @@ system_ss.add(when: 'CONFIG_BOCHS_DISPLAY', if_true: files('bochs-display.c'))
 
 system_ss.add(when: 'CONFIG_EXYNOS4', if_true: files('exynos4210_fimd.c'))
 system_ss.add(when: 'CONFIG_FRAMEBUFFER', if_true: files('framebuffer.c'))
+system_ss.add(when: 'CONFIG_S5L8900_LCD', if_true: files('s5l8900_lcd.c'))
+if host_os == 'darwin' and metal.found()
+  system_ss.add(when: 'CONFIG_S5L8900_MBX',
+                if_true: [files('s5l8900_mbx.c', 's5l8900_mbx_metal.m'), metal])
+else
+  system_ss.add(when: 'CONFIG_S5L8900_MBX',
+                if_true: files('s5l8900_mbx.c', 's5l8900_mbx_metal_stub.c'))
+endif
+system_ss.add(when: 'CONFIG_S5L8900_TVOUT', if_true: files('s5l8900_tvout.c'))
 
 system_ss.add(when: 'CONFIG_RASPI', if_true: files('bcm2835_fb.c'))
 system_ss.add(when: 'CONFIG_SM501', if_true: files('sm501.c'))

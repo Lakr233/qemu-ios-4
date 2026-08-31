@@ -40,6 +40,14 @@ config I2C_ECHO
     default y if TEST_DEVICES
     depends on I2C
 
+config PCF50635
+    bool
+    select I2C
+
+config S5L8900_ADM
+    bool
+    depends on S5L8900_NAND
+
 config PL310
     bool
 
@@ -261,6 +269,21 @@ config AXIADO_CLK
     bool
 
 config K230_DECOMP_GZIP
+    bool
+
+config S5L8900_CLOCK
+    bool
+
+config S5L8900_CHIPID
+    bool
+
+config S5L8900_AES
+    bool
+
+config S5L8900_SHA1
+    bool
+
+config S5L8900_PKE
     bool
 
 source macio/Kconfig

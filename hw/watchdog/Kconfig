@@ -18,6 +18,9 @@ config WDT_DIAG288
 config WDT_IMX2
     bool
 
+config S5L8900_WATCHDOG
+    bool
+
 config K230_WDT
     bool
     select PTIMER

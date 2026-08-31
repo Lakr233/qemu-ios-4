@@ -57,6 +57,9 @@ config USB_DWC2
     bool
     select USB
 
+config S5L8900_USB
+    bool
+
 config USB_HUB
     bool
     default y

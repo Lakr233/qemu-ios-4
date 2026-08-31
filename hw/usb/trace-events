@@ -1,5 +1,11 @@
 # See docs/devel/tracing.rst for syntax documentation.
 
+# s5l8900_usb.c
+s5l8900_usb_transfer_begin(uint32_t id, unsigned kind, unsigned ep, uint32_t length) "id=%u kind=%u ep=%u length=%u"
+s5l8900_usb_transfer_service(uint32_t id, unsigned kind, unsigned phase, uint32_t completed) "id=%u kind=%u phase=%u completed=%u"
+s5l8900_usb_transfer_finish(uint32_t id, unsigned kind, uint32_t completed) "id=%u kind=%u completed=%u"
+s5l8900_usb_endpoint_write(bool input, uint64_t reg, uint32_t value, uint32_t control, uint32_t size, uint32_t dma) "in=%d reg=0x%" PRIx64 " value=0x%x control=0x%x size=0x%x dma=0x%x"
+
 # core.c
 usb_packet_state_change(int bus, const char *port, int ep, void *p, const char *o, const char *n) "bus %d, port %s, ep %d, packet %p, state %s -> %s"
 usb_packet_state_fault(int bus, const char *port, int ep, void *p, const char *o, const char *n) "bus %d, port %s, ep %d, packet %p, state %s, expected %s"

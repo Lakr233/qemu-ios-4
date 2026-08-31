@@ -39,6 +39,13 @@ system_ss.add(when: 'CONFIG_SIFIVE_E_AON', if_true: files('sifive_e_aon.c'))
 system_ss.add(when: 'CONFIG_SIFIVE_U_OTP', if_true: files('sifive_u_otp.c'))
 system_ss.add(when: 'CONFIG_SIFIVE_U_PRCI', if_true: files('sifive_u_prci.c'))
 system_ss.add(when: 'CONFIG_K230_DECOMP_GZIP', if_true: files('k230_decomp_gzip.c'))
+system_ss.add(when: 'CONFIG_S5L8900_CLOCK', if_true: files('s5l8900_clock.c'))
+system_ss.add(when: 'CONFIG_S5L8900_CHIPID', if_true: files('s5l8900_chipid.c'))
+system_ss.add(when: 'CONFIG_S5L8900_AES', if_true: files('s5l8900_aes.c'))
+system_ss.add(when: 'CONFIG_S5L8900_SHA1', if_true: files('s5l8900_sha1.c'))
+system_ss.add(when: 'CONFIG_S5L8900_PKE', if_true: files('s5l8900_pke.c'))
+system_ss.add(when: 'CONFIG_S5L8900_ADM', if_true: files('s5l8900_adm.c'))
+system_ss.add(when: 'CONFIG_PCF50635', if_true: files('pcf50635.c'))
 
 subdir('macio')
 

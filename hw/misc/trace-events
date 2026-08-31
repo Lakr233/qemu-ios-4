@@ -1,5 +1,10 @@
 # See docs/devel/tracing.rst for syntax documentation.
 
+# pcf50635.c
+pcf50635_irq(uint8_t pending, bool level) "pending=0x%02x level=%d"
+pcf50635_read(uint8_t reg, uint8_t value) "reg=0x%02x value=0x%02x"
+pcf50635_write(uint8_t reg, uint8_t value) "reg=0x%02x value=0x%02x"
+
 # allwinner-cpucfg.c
 allwinner_cpucfg_cpu_reset(uint8_t cpu_id, uint32_t reset_addr) "id %u, reset_addr 0x%" PRIx32
 allwinner_cpucfg_read(uint64_t offset, uint64_t data, unsigned size) "offset 0x%" PRIx64 " data 0x%" PRIx64 " size %" PRIu32
@@ -446,3 +451,32 @@ iommu_testdev_dma_armed(bool armed) "armed=%d"
 # k230_decomp_gzip.c
 k230_decomp_gzip_read(uint64_t offset, unsigned int size, uint64_t value) "K230 DECOMP GZIP read: [0x%"PRIx64"] size %u -> 0x%"PRIx64
 k230_decomp_gzip_write(uint64_t offset, unsigned int size, uint64_t value) "K230 DECOMP GZIP write: [0x%"PRIx64"] size %u <- 0x%"PRIx64
+# s5l8900_pke.c
+s5l8900_pke_control_write(uint64_t offset, uint32_t value) "offset=0x%03" PRIx64 " value=0x%08" PRIx32
+s5l8900_pke_segment_write(uint64_t offset, uint32_t value) "offset=0x%03" PRIx64 " value=0x%08" PRIx32
+s5l8900_pke_segment_read(uint64_t offset, uint32_t value) "offset=0x%03" PRIx64 " value=0x%08" PRIx32
+
+# s5l8900_aes.c
+s5l8900_aes_operation(uint32_t key_type, uint32_t keylen, uint32_t transfer_size, uint32_t input_address, uint32_t output_address, uint32_t input0, uint32_t output_before0, uint32_t output0) "key_type=%" PRIu32 " keylen=0x%08" PRIx32 " transfer=0x%08" PRIx32 " input=0x%08" PRIx32 " output=0x%08" PRIx32 " input0=0x%08" PRIx32 " output_before0=0x%08" PRIx32 " output0=0x%08" PRIx32
+s5l8900_aes_failure(uint32_t key_type, uint32_t keylen, uint32_t transfer_size, uint32_t input_address, uint32_t input_capacity, uint32_t output_address, uint32_t output_capacity, uint32_t auxiliary_address, uint32_t size3) "key_type=%" PRIu32 " keylen=0x%08" PRIx32 " transfer=0x%08" PRIx32 " input=0x%08" PRIx32 "/0x%08" PRIx32 " output=0x%08" PRIx32 "/0x%08" PRIx32 " auxiliary=0x%08" PRIx32 " size3=0x%08" PRIx32
+
+# s5l8900_sha1.c
+s5l8900_sha1_data_write(unsigned index, uint32_t value) "index=%u value=0x%08" PRIx32
+s5l8900_sha1_reset_write(uint32_t value) "value=0x%08" PRIx32
+s5l8900_sha1_run_start(uint32_t config, uint32_t dma_control, uint32_t dma_address, uint32_t dma_length, uint32_t in0, uint32_t in1, uint32_t in2, uint32_t in3, uint32_t in4) "config=0x%08" PRIx32 " dma_control=0x%08" PRIx32 " dma_address=0x%08" PRIx32 " dma_length=0x%08" PRIx32 " input=%08" PRIx32 ":%08" PRIx32 ":%08" PRIx32 ":%08" PRIx32 ":%08" PRIx32
+s5l8900_sha1_run_result(uint32_t out0, uint32_t out1, uint32_t out2, uint32_t out3, uint32_t out4) "output=%08" PRIx32 ":%08" PRIx32 ":%08" PRIx32 ":%08" PRIx32 ":%08" PRIx32
+
+# s5l8900_adm.c
+s5l8900_adm_control_write(uint32_t previous, uint32_t value) "previous=0x%08" PRIx32 " value=0x%08" PRIx32
+s5l8900_adm_command_write(uint32_t command, uint32_t control, uint32_t previous_status, uint32_t status) "command=0x%08" PRIx32 " control=0x%08" PRIx32 " status=0x%08" PRIx32 "->0x%08" PRIx32
+s5l8900_adm_fmc_descriptor_failure(uint32_t address, unsigned descriptor_index, const char *stage, uint32_t descriptor_address, uint32_t length) "address=0x%08" PRIx32 " descriptor_index=%u stage=%s descriptor_address=0x%08" PRIx32 " length=0x%08" PRIx32
+s5l8900_adm_fmc_target_failure(uint32_t address, unsigned page_index, const char *stage, uint32_t bank, uint32_t page) "address=0x%08" PRIx32 " page_index=%u stage=%s bank=%" PRIu32 " page=%" PRIu32
+s5l8900_adm_fmc_read_failure(uint32_t address, unsigned page_index, unsigned descriptor_index, const char *stage, uint32_t bank, uint32_t page) "address=0x%08" PRIx32 " page_index=%u descriptor_index=%u stage=%s bank=%" PRIu32 " page=%" PRIu32
+s5l8900_adm_fmc_write_failure(uint32_t address, unsigned page_index, unsigned descriptor_index, const char *stage, uint32_t bank, uint32_t page) "address=0x%08" PRIx32 " page_index=%u descriptor_index=%u stage=%s bank=%" PRIu32 " page=%" PRIu32
+s5l8900_adm_fmc_state(const char *where, uint32_t command_direction, uint32_t dma_direction, bool armed, bool run_pending, bool completion_is_write, bool write_prepared, bool completion_pending, bool dma_completion_pending) "where=%s command_direction=%" PRIu32 " dma_direction=%" PRIu32 " armed=%d run_pending=%d completion_is_write=%d write_prepared=%d completion_pending=%d dma_completion_pending=%d"
+s5l8900_adm_fmc_write_skipped(uint32_t address, uint16_t opcode, uint16_t page_count, uint16_t pad_size, uint32_t first_lpn, uint32_t last_lpn) "address=0x%08" PRIx32 " opcode=0x%04" PRIx16 " pages=%" PRIu16 " pad=%" PRIu16 " first_lpn=%" PRIu32 " last_lpn=%" PRIu32
+s5l8900_adm_fmc_write_commit(uint32_t address, uint16_t page_count, uint32_t first_lpn, uint32_t last_lpn, uint32_t first_bank, uint32_t first_page, uint32_t last_bank, uint32_t last_page) "address=0x%08" PRIx32 " pages=%" PRIu16 " lpn=%" PRIu32 "..%" PRIu32 " target=%" PRIu32 ":%" PRIu32 "..%" PRIu32 ":%" PRIu32
+s5l8900_adm_fmc_read_page(unsigned page_index, uint32_t bank, uint32_t page, uint32_t data0, uint32_t data400, uint32_t data404, uint32_t spare0, uint32_t spare4, uint32_t spare8) "page_index=%u bank=%" PRIu32 " page=%" PRIu32 " data[0]=0x%08" PRIx32 " data[400]=0x%08" PRIx32 " data[404]=0x%08" PRIx32 " spare[0]=0x%08" PRIx32 " spare[4]=0x%08" PRIx32 " spare[8]=0x%08" PRIx32
+s5l8900_adm_fmc_write_page(unsigned page_index, uint32_t bank, uint32_t page, uint32_t data0, uint32_t data400, uint32_t data404, uint32_t spare0, uint32_t spare4, uint32_t spare8) "page_index=%u bank=%" PRIu32 " page=%" PRIu32 " data[0]=0x%08" PRIx32 " data[400]=0x%08" PRIx32 " data[404]=0x%08" PRIx32 " spare[0]=0x%08" PRIx32 " spare[4]=0x%08" PRIx32 " spare[8]=0x%08" PRIx32
+s5l8900_adm_fmc_descriptor_transfer(const char *direction, unsigned index, uint32_t address, size_t size, uint32_t data0, uint32_t data400, uint32_t data404) "direction=%s index=%u address=0x%08" PRIx32 " size=0x%zx data[0]=0x%08" PRIx32 " data[400]=0x%08" PRIx32 " data[404]=0x%08" PRIx32
+s5l8900_adm_fmc_run(uint32_t address, uint16_t opcode, uint16_t page_count, uint16_t pad_size, uint16_t flags, uint16_t command_result, uint16_t media_result, uint16_t read_result) "address=0x%08" PRIx32 " opcode=0x%04" PRIx16 " pages=%" PRIu16 " pad=%" PRIu16 " flags=0x%04" PRIx16 " command_result=%" PRIu16 " media_result=%" PRIu16 " read_result=0x%04" PRIx16

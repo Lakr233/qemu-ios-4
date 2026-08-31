@@ -1,3 +1,19 @@
+# s5l8900_merlot.c
+s5l8900_merlot_transfer(bool serializer, uint8_t command, uint8_t value, uint8_t response) "serializer=%d command=0x%02x value=0x%02x response=0x%02x"
+
+# s5l8900_spi.c
+s5l8900_spi_fifo_push(bool receive_clock, uint32_t tx, uint32_t rx, uint8_t rx_count, uint32_t transfer_count) "receive_clock=%d tx=0x%08x rx=0x%08x rx_count=%u transfer_count=%u"
+s5l8900_spi_fifo_pop(uint32_t rx, uint8_t rx_count, uint32_t status) "rx=0x%08x rx_count=%u status=0x%08x"
+s5l8900_spi_status_ack(uint32_t value, uint32_t before, uint32_t after, uint32_t transfer_count) "value=0x%08x before=0x%08x after=0x%08x transfer_count=%u"
+
+# s5l8900_zephyr2.c
+s5l8900_zephyr2_command(uint8_t opcode, uint32_t length, uint8_t pending_ack, bool firmware_running) "opcode=0x%02x length=%u pending_ack=%u firmware_running=%d"
+s5l8900_zephyr2_hbpp(uint32_t length, uint8_t pending_ack, uint8_t response, bool firmware_running) "length=%u pending_ack=%u final_response=0x%02x firmware_running=%d"
+s5l8900_zephyr2_data(const char *event, uint32_t expected, uint32_t received) "%s expected=%u received=%u"
+s5l8900_zephyr2_select(uint8_t first, uint8_t second, uint32_t length, bool data_active, uint32_t received, uint32_t expected) "prefix=%02x%02x length=%u data_active=%d received=%u expected=%u"
+s5l8900_zephyr2_power(bool level, bool firmware_running) "level=%d firmware_running=%d"
+s5l8900_zephyr2_reset(bool level, bool firmware_running) "level=%d firmware_running=%d"
+
 # aspeed_smc.c
 
 aspeed_smc_flash_set_segment(int cs, uint64_t reg, uint64_t start, uint64_t end) "CS%d segreg=0x%"PRIx64" [ 0x%"PRIx64" - 0x%"PRIx64" ]"

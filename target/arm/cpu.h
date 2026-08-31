@@ -2359,8 +2359,9 @@ static inline bool arm_v7m_is_handler_mode(CPUARMState *env)
  *
  * For each register listed in the ARMCPU cpreg_indexes list, write
  * its value from the cpreg_values list into the ARMCPUState structure.
- * This updates TCG's working data structures from KVM data or
- * from incoming migration state.
+ * This updates the working data structures from an accelerator register
+ * list. write_vmstate_list_to_cpustate() handles incoming migration state,
+ * whose AArch32 indexes also preserve QEMU's secure/non-secure tag.
  *
  * Returns: true if all register values were updated correctly,
  * false if some register was unknown or could not be written.
@@ -2368,6 +2369,7 @@ static inline bool arm_v7m_is_handler_mode(CPUARMState *env)
  * writing all registers in the list.
  */
 bool write_list_to_cpustate(ARMCPU *cpu);
+bool write_vmstate_list_to_cpustate(ARMCPU *cpu);
 
 /**
  * write_cpustate_to_list:
@@ -2376,8 +2378,9 @@ bool write_list_to_cpustate(ARMCPU *cpu);
  *
  * For each register listed in the ARMCPU cpreg_indexes list, write
  * its value from the ARMCPUState structure into the cpreg_values list.
- * This is used to copy info from TCG's working data structures into
- * KVM or for outbound migration.
+ * This is used to copy info from the working data structures into an
+ * accelerator register list. write_cpustate_to_vmstate_list() handles
+ * outbound migration state, including AArch32 secure registers.
  *
  * @kvm_sync is true if we are doing this in order to sync the
  * register state back to KVM. In this case we will only update
@@ -2391,6 +2394,7 @@ bool write_list_to_cpustate(ARMCPU *cpu);
  * reading all registers in the list.
  */
 bool write_cpustate_to_list(ARMCPU *cpu, bool kvm_sync);
+bool write_cpustate_to_vmstate_list(ARMCPU *cpu);
 
 #define ARM_CPUID_TI915T      0x54029152
 #define ARM_CPUID_TI925T      0x54029252

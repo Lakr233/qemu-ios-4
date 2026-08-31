@@ -4,6 +4,27 @@
 jazz_led_read(uint64_t addr, uint8_t val) "read addr=0x%"PRIx64": 0x%x"
 jazz_led_write(uint64_t addr, uint8_t new) "write addr=0x%"PRIx64": 0x%x"
 
+# s5l8900_mbx.c
+s5l8900_mbx_read_sample(uint64_t offset, unsigned size, uint64_t value, uint64_t count) "offset=0x%04"PRIx64" size=%u value=0x%08"PRIx64" repeat=%"PRIu64
+s5l8900_mbx_write(uint64_t offset, unsigned size, uint64_t value) "offset=0x%04"PRIx64" size=%u value=0x%08"PRIx64
+s5l8900_mbx_2d_complete(uint32_t count, uint64_t bytes) "commands=%u bytes=%"PRIu64
+s5l8900_mbx_2d_commit(uint32_t target, uint32_t physical, uint32_t x, uint32_t y, uint32_t width, uint32_t height) "target=0x%08x physical=0x%08x rect=%u,%u %ux%u"
+s5l8900_mbx_2d_reject(uint32_t offset, uint32_t count, const char *reason) "ring_offset=0x%08x commands=%u reason=%s"
+s5l8900_mbx_3d_ta_start(uint32_t render_id, uint32_t object_database, uint32_t tail, uint32_t region, uint32_t render_region, uint32_t render_object, uint32_t target) "render_id=0x%08x object_database=0x%08x tail=0x%08x region=0x%08x render_region=0x%08x render_object=0x%08x target=0x%08x"
+s5l8900_mbx_3d_fifo(uint32_t index, uint32_t value) "index=%u value=0x%08x"
+s5l8900_mbx_3d_ta_complete(uint32_t words, bool failed, uint32_t status) "words=%u capture_failed=%d status=0x%08x"
+s5l8900_mbx_3d_render(uint32_t region, uint32_t object, uint32_t target, uint32_t xclip, uint32_t yclip, uint32_t pixel_sample, uint32_t framebuffer_control, uint32_t stride) "region=0x%08x object=0x%08x target=0x%08x xclip=0x%08x yclip=0x%08x pixel_sample=0x%08x framebuffer_control=0x%08x stride=0x%08x"
+s5l8900_mbx_3d_target(uint32_t target, uint32_t physical) "target=0x%08x physical=0x%08x"
+s5l8900_mbx_3d_complete(const char *decoder, uint32_t pixels, uint32_t target, uint32_t top_left, uint32_t center, uint32_t bottom_right) "decoder=%s pixels=%u target=0x%08x samples=0x%08x/0x%08x/0x%08x"
+s5l8900_mbx_3d_reject(const char *reason, uint32_t words) "reason=%s words=%u"
+s5l8900_mbx_3d_object_word(uint32_t index, uint32_t value) "index=%u value=0x%08x"
+s5l8900_mbx_3d_region_word(uint32_t index, uint32_t value) "index=%u value=0x%08x"
+s5l8900_mbx_metal_complete(uint32_t pixels, uint64_t submissions, const char *device) "pixels=%u submissions=%"PRIu64" device=%s"
+s5l8900_mbx_metal_failure(uint32_t pixels) "pixels=%u falling back to software"
+
+# s5l8900_lcd.c
+s5l8900_lcd_write(uint64_t offset, unsigned size, uint64_t value, bool enabled) "offset=0x%03"PRIx64" size=%u value=0x%08"PRIx64" enabled=%d"
+
 # xenfb.c
 xenfb_mouse_event(void *opaque, int dx, int dy, int dz, int button_state, int abs_pointer_wanted) "%p x %d y %d z %d bs 0x%x abs %d"
 xenfb_key_event(void *opaque, int scancode, int button_state) "%p scancode %d bs 0x%x"
@@ -225,4 +246,3 @@ apple_gfx_iosfc_map_memory_new_region(size_t i, void *region, uint64_t start, ui
 apple_gfx_iosfc_unmap_memory(void *a, void *b, void *c, void *d, void *e, void *f) "a=%p b=%p c=%p d=%p e=%p f=%p"
 apple_gfx_iosfc_unmap_memory_region(void* mem, void *region) "unmapping @ %p from memory region %p"
 apple_gfx_iosfc_raise_irq(uint32_t vector) "vector=0x%x"
-

@@ -10,6 +10,9 @@ config SSI_SD
 config SD
     bool
 
+config S5L8900_SDIO
+    bool
+
 config SDHCI
     bool
     select SD

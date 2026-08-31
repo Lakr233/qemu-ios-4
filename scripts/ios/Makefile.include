@@ -522,7 +522,7 @@ iphone3g-pymobiledevice3:
 		$(IPHONE3G_PYMOBILEDEVICE_ARGS)
 
 iphone3g-test: qemu-system-arm tests/qtest/iphone3g-test
-	$(CC) -std=c11 -Wall -Wextra -Werror \
+	$(if $(strip $(CC)),$(CC),cc) -std=c11 -Wall -Wextra -Werror \
 		"$(IPHONE3G_ROOT)/scripts/ios/iphone3g-ppp.c" \
 		"$(IPHONE3G_ROOT)/scripts/ios/test-iphone3g-ppp.c" \
 		-o "$(BUILD_DIR)/test-iphone3g-ppp"

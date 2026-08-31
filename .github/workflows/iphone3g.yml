@@ -12,12 +12,13 @@ jobs:
   build-and-test:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install --yes \
-            build-essential libfdt-dev libglib2.0-dev libpixman-1-dev \
+            build-essential libfdt-dev libglib2.0-dev libgnutls28-dev \
+            libpixman-1-dev \
             ninja-build pkg-config python3-venv
       - name: Create Python environment
         run: |
@@ -29,6 +30,7 @@ jobs:
             --target-list=arm-softmmu \
             --disable-docs \
             --disable-werror \
+            --enable-gnutls \
             --python="$PWD/.venv/bin/python"
       - name: Build and test iPhone 3G
         run: make -C build iphone3g-test
